@@ -2,15 +2,16 @@
 
 基于 ConnectOnion 框架构建的**智能社交媒体内容创作系统**，融合多模型协同、MCP 集成和智能编排。
 
-> 💡 **当前状态**：**MVP v0.1** - 核心创作流程已实现，可端到端完成从分析到创作的全流程（发布功能需配置 MCP）。
+> 💡 **当前状态**：**MVP v0.2 (P0)** - 核心创作流程已实现，CLI 主入口完善，草稿自动保存。
 
 > 🎯 **核心理念**：通过 Multi-Agent 协作和智能模型路由，实现高质量内容的自动化创作。
 
-> ⚡ **最新更新**：
-> - ✅ 已修复路径问题（统一使用 pathlib.Path）
-> - ✅ 核心 Agent 工具函数已实现
-> - ✅ 智能模型路由系统完成
-> - ✅ 小红书 MCP 客户端集成完成
+> ⚡ **最新更新** (2025-11-02)：
+> - ✅ CLI 主入口完善（环境检查、MCP验证、单任务模式）
+> - ✅ 草稿自动保存和管理系统
+> - ✅ 统一的工具返回格式（success/data/message）
+> - ✅ 完整的测试脚本和文档
+> - ✅ 增强的错误处理和故障排除
 
 ## ✨ MVP 核心特性
 
@@ -321,7 +322,62 @@ ollama serve
 
 ### 使用方式
 
-#### 方式 1：直接运行 Agent（推荐 - MVP 已实现）
+#### 方式 0：CLI 主入口（MVP v0.2 - 推荐 ✨）
+
+**新增的命令行工具，提供完整的环境管理和任务执行：**
+
+```bash
+# 1. 检查环境配置（推荐首次运行）
+python main.py --check
+
+# 2. 单任务模式 - 执行一个创作任务
+python main.py --mode single --task "发表一篇关于澳洲旅游的帖子"
+
+# 3. 跳过 MCP 检查 - 仅测试分析和创作功能
+python main.py --skip-mcp-check --mode single --task "创作关于咖啡的内容"
+
+# 4. 不保存草稿
+python main.py --mode single --task "测试内容" --no-save-draft
+
+# 5. 查看帮助信息
+python main.py --help
+```
+
+**输出示例：**
+```
+============================================================
+🤖 社交媒体 Multi-Agent 系统 - MVP v0.2
+============================================================
+
+🔧 正在初始化环境...
+✅ 输出目录已创建
+✅ OpenAI API Key 已配置
+✅ Anthropic API Key 已配置
+✅ 环境初始化完成
+
+🔌 正在检查小红书 MCP 服务...
+✅ MCP 服务连接正常
+✅ 已登录小红书账号: username
+✅ 初始化完成
+
+============================================================
+📋 任务: 发表一篇关于澳洲旅游的帖子
+============================================================
+
+🚀 正在初始化 Coordinator Agent...
+✅ Agent 已就绪
+
+🤖 Coordinator: 正在处理任务...
+
+[执行流程...]
+
+✅ 草稿已保存: 20251102_143052_澳洲旅游
+📁 保存路径: outputs/drafts/20251102_143052_澳洲旅游.json
+
+✅ 任务完成！
+```
+
+#### 方式 1：直接运行 Agent（MVP v0.1 - 交互式）
 
 ```bash
 # 进入 Python 环境或创建测试脚本
@@ -490,17 +546,28 @@ python xiaohongshu_manager.py stop
 **Bug 修复**：
 - [x] 路径问题修复（统一使用 pathlib.Path）
 
-### 🚧 MVP v0.2（进行中）
+### ✅ MVP v0.2（P0 已完成）
 
-**优先级 P0**：
-- [ ] CLI 主入口完善（main.py）
-  - [ ] 环境初始化（setup_environment）
-  - [ ] MCP 连接验证（validate_mcp_connection）
-  - [ ] 单任务模式（run_single_task）
-- [ ] 草稿持久化（自动保存到 outputs/drafts）
-- [ ] 统一工具返回格式（success/data/message）
+**优先级 P0（✅ 已完成）**：
+- [x] CLI 主入口完善（main.py）
+  - [x] 环境初始化（setup_environment）
+  - [x] MCP 连接验证（validate_mcp_connection）
+  - [x] 单任务模式（run_single_task）
+- [x] 草稿持久化（自动保存到 outputs/drafts）
+- [x] 统一工具返回格式（success/data/message）
 
-**优先级 P1**：
+**新增功能：**
+- ✅ 完整的环境检查系统（LLM API、MCP 服务、目录结构）
+- ✅ 智能草稿管理器（自动保存、历史查看、草稿清理）
+- ✅ 标准化响应格式（success/data/message/error/metadata）
+- ✅ 增强的 CLI 命令行参数（--check、--skip-mcp-check、--no-save-draft）
+- ✅ 详细的错误提示和故障排除建议
+
+**测试覆盖：**
+- ✅ 功能测试脚本（test_mvp02.py）
+- ✅ 所有代码通过 Linter 检查
+
+**优先级 P1（待开发）**：
 - [ ] Mock 模式（DevConfig.MOCK_MODE）
 - [ ] 基础日志系统配置
 - [ ] 简单的烟雾测试
@@ -606,5 +673,5 @@ MIT License
 
 **⭐ 如果这个项目对你有帮助，请给个 Star！**
 
-**最后更新**：2025-11-02 | **版本**：MVP v0.1
+**最后更新**：2025-11-02 | **版本**：MVP v0.2 (P0) | **详细日志**：[MVP_V02_CHANGELOG.md](MVP_V02_CHANGELOG.md)
 

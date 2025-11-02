@@ -128,6 +128,26 @@ class XiaohongshuMCPClient:
             logger.error(error_msg)
             raise XiaohongshuMCPError(error_msg)
     
+    def check_health(self) -> bool:
+        """
+        检查 MCP 服务健康状态
+        
+        Returns:
+            True 如果服务正常，False 如果服务不可用
+            
+        Example:
+            >>> client = XiaohongshuMCPClient()
+            >>> if client.check_health():
+            ...     print("服务正常")
+        """
+        try:
+            # 尝试检查登录状态，如果能成功请求则说明服务正常
+            self.check_login_status()
+            return True
+        except Exception as e:
+            logger.warning(f"健康检查失败: {str(e)}")
+            return False
+    
     def check_login_status(self) -> Dict[str, Any]:
         """
         检查小红书登录状态

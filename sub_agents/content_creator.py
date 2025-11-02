@@ -86,7 +86,24 @@ def agent_c_create_content(
         logger.info("解析 LLM 返回结果...")
         result = _parse_llm_response(raw_response, topic, style)
         
-        # 8. 返回 JSON 格式字符串
+        # 8. 自动保存草稿
+        try:
+            from utils.draft_manager import save_draft_from_content
+            draft_id = save_draft_from_content(
+                content_data=result,
+                topic=topic,
+                analysis_data=analysis_data
+            )
+            logger.info(f"草稿已保存: {draft_id}")
+            
+            # 在元数据中添加草稿ID
+            if 'metadata' not in result:
+                result['metadata'] = {}
+            result['metadata']['draft_id'] = draft_id
+        except Exception as e:
+            logger.warning(f"保存草稿失败（非关键错误）: {str(e)}")
+        
+        # 9. 返回 JSON 格式字符串
         return json.dumps(result, ensure_ascii=False, indent=2)
         
     except json.JSONDecodeError as e:
