@@ -43,9 +43,9 @@ def test_imports():
         print("✅ 工具模块导入成功")
         
         # 子 Agent 模块
-        from sub_agents.content_analyst import agent_a_analyze_xiaohongshu
-        from sub_agents.content_creator import agent_c_create_content
-        from sub_agents.publisher import publish_to_xiaohongshu
+        from tools.content_analyst import agent_a_analyze_xiaohongshu
+        from tools.content_creator import agent_c_create_content
+        from tools.publisher import publish_to_xiaohongshu
         print("✅ 子 Agent 模块导入成功")
         
         # 主协调 Agent
@@ -216,9 +216,9 @@ def test_sub_agents():
     print("=" * 60)
     
     try:
-        from sub_agents.content_analyst import agent_a_analyze_xiaohongshu
-        from sub_agents.content_creator import agent_c_create_content
-        from sub_agents.publisher import publish_to_xiaohongshu
+        from tools.content_analyst import agent_a_analyze_xiaohongshu
+        from tools.content_creator import agent_c_create_content
+        from tools.publisher import publish_to_xiaohongshu
         
         # 测试分析 Agent
         print("📊 测试内容分析 Agent...")

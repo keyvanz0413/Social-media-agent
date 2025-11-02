@@ -12,10 +12,10 @@ except ImportError:
     Agent = None
     logging.warning("ConnectOnion 未安装，无法使用 Coordinator Agent")
 
-# 导入子 Agent
-from sub_agents.content_analyst import agent_a_analyze_xiaohongshu
-from sub_agents.content_creator import agent_c_create_content
-from sub_agents.publisher import publish_to_xiaohongshu
+# 导入工具函数
+from tools.content_analyst import agent_a_analyze_xiaohongshu
+from tools.content_creator import agent_c_create_content
+from tools.publisher import publish_to_xiaohongshu
 
 # 导入配置
 from config import AgentConfig, PathConfig, ModelConfig
