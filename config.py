@@ -192,7 +192,7 @@ class MCPConfig:
     
     SERVERS = {
         "xiaohongshu": {
-            "url": os.getenv("MCP_XIAOHONGSHU_URL", "http://localhost:8001"),
+            "url": os.getenv("MCP_XIAOHONGSHU_URL", "http://localhost:18060"),
             "enabled": True,
             "timeout": 30,
             "methods": {
