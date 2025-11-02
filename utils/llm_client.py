@@ -125,23 +125,28 @@ class LLMClient:
         """
         model_lower = model_name.lower()
         
-        # Anthropic 模型
-        if "claude" in model_lower:
-            return "anthropic"
-        
-        # Ollama 模型（通常不包含 "gpt" 或 "claude"）
-        if model_lower.startswith(("llama", "qwen", "mistral", "phi", "gemma")):
-            return "ollama"
-        
-        # OpenAI 模型或第三方平台（默认）
-        if any(keyword in model_lower for keyword in ["gpt", "o1", "text-"]):
+        # 🔥 优先级1: 检查是否使用第三方平台（OpenAI 兼容接口）
+        # 如果配置了自定义 OPENAI_BASE_URL 且不是官方 OpenAI，则所有模型都通过 OpenAI 兼容接口调用
+        # 这样第三方平台可以调用任何模型（包括 Claude、GPT、Gemini 等）
+        if self.openai_base_url and "openai.com" not in self.openai_base_url.lower():
+            logger.debug(f"检测到第三方平台 ({self.openai_base_url})，使用 OpenAI 兼容接口调用 {model_name}")
             return "openai"
         
-        # 如果配置了自定义 base_url，可能是第三方平台
-        if self.openai_base_url and "openai.com" not in self.openai_base_url.lower():
-            return "openai"  # 使用 OpenAI 兼容接口
+        # 🔥 优先级2: 官方 Anthropic API
+        # 只有在没有配置第三方平台，且有 ANTHROPIC_API_KEY 时，才使用 Anthropic SDK
+        if "claude" in model_lower:
+            if self.anthropic_api_key:
+                return "anthropic"
+            else:
+                # 没有 Anthropic Key，尝试用 OpenAI 兼容接口（可能是第三方平台）
+                logger.warning(f"模型 {model_name} 是 Claude 模型，但未配置 ANTHROPIC_API_KEY，将尝试用 OpenAI 兼容接口")
+                return "openai"
         
-        # 默认尝试 OpenAI（包括第三方平台）
+        # 🔥 优先级3: Ollama 本地模型
+        if model_lower.startswith(("llama", "qwen", "mistral", "phi", "gemma", "deepseek")):
+            return "ollama"
+        
+        # 🔥 优先级4: OpenAI 官方 API（默认）
         return "openai"
     
     @retry(

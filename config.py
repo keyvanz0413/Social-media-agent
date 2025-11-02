@@ -16,16 +16,19 @@ class ModelConfig:
     """多模型协同配置"""
     
     # 模型角色分配
+    # 💡 提示：如果使用第三方平台（如 OpenRouter、SiliconFlow 等），
+    #         可以在 .env 中配置 OPENAI_BASE_URL，然后直接使用任何模型名称
+    #         系统会自动通过 OpenAI 兼容接口调用（包括 Claude、GPT、Gemini 等）
     MODELS = {
         "reasoning": {
             "name": "gpt-4o",
-            "provider": "openai",
+            "provider": "openai",  # 如果用第三方平台，会自动走 OpenAI 兼容接口
             "description": "深度推理、策略制定",
             "use_cases": ["content_analysis", "strategy", "complex_reasoning"]
         },
         "creative": {
-            "name": "claude-3.5-sonnet",
-            "provider": "anthropic",
+            "name": "claude-3-5-sonnet-20241022",  # 使用第三方平台支持的最新版本
+            "provider": "anthropic",  # 如果用第三方平台，会自动走 OpenAI 兼容接口
             "description": "创意写作、标题生成",
             "use_cases": ["title_generation", "creative_writing", "storytelling"]
         },
@@ -92,7 +95,8 @@ class ModelConfig:
     # 备用模型（降级策略）
     FALLBACK_MODELS = {
         "gpt-4o": "gpt-4o-mini",
-        "claude-3.5-sonnet": "gpt-4o",
+        "claude-3-5-sonnet-20241022": "gpt-4o",
+        "claude-3.5-sonnet": "gpt-4o",  # 兼容旧配置
         "qwen2.5-vl": "gpt-4o-vision",
         "gpt-4o-mini": None,  # 已经是最便宜的，无法继续降级
     }
@@ -107,8 +111,8 @@ class ModelConfig:
         },
         "creation": {
             "fast": "gpt-4o-mini",
-            "balanced": "claude-3.5-sonnet",
-            "high": "claude-3.5-sonnet"
+            "balanced": "claude-3-5-sonnet-20241022",  # 最新版 Claude 3.5 Sonnet
+            "high": "claude-3-5-sonnet-20241022"
         },
         "review": {
             "fast": "gpt-4o-mini",
@@ -143,9 +147,16 @@ class ModelConfig:
             "cost_level": "low",
             "context_window": 128000
         },
+        "claude-3-5-sonnet-20241022": {
+            "provider": "anthropic",
+            "description": "Claude 3.5 Sonnet 最新版 (2024-10-22)",
+            "strengths": ["创意写作", "长文本生成", "自然对话", "代码生成"],
+            "cost_level": "high",
+            "context_window": 200000
+        },
         "claude-3.5-sonnet": {
             "provider": "anthropic",
-            "description": "Claude 最强模型",
+            "description": "Claude 3.5 Sonnet (通用别名)",
             "strengths": ["创意写作", "长文本生成", "自然对话"],
             "cost_level": "high",
             "context_window": 200000
