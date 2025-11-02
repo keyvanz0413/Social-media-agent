@@ -115,33 +115,6 @@ Coordinator Agent (主协调)
 
 ---
 
-## 🔧 可选配置
-
-### MCP 服务（发布功能）
-
-使用开源项目 [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp)：
-
-```bash
-# 启动 MCP 服务
-cd ../xiaohongshu-mcp
-./xiaohongshu-mcp
-
-# 配置环境变量
-MCP_SERVER_URL=http://localhost:18060
-```
-
-### 其他可选
-
-```bash
-# Claude（更好的创作）
-ANTHROPIC_API_KEY=sk-ant-...
-
-# 本地模型
-OLLAMA_BASE_URL=http://localhost:11434
-```
-
----
-
 ## 📂 项目结构
 
 ```
@@ -152,78 +125,8 @@ Social-media-agent/
 ├── tools/                # 工具函数（分析、创作、评审等）
 ├── utils/                # 工具类（缓存、并行执行等）
 ├── prompts/              # System Prompts
-├── tests/                # 测试套件（18个测试）
-└── examples/             # 使用示例
+└── tests/                # 测试套件（18个测试）
 ```
-
----
-
-## 🧪 运行测试
-
-```bash
-# 完整测试
-python tests/test_end_to_end_with_review.py
-
-# 性能测试
-python tests/test_performance_optimization.py
-
-# 缓存测试
-python tests/test_cache_functionality.py
-```
-
----
-
-## 📖 使用示例
-
-### 基础使用
-
-```python
-from agent import create_coordinator_agent
-
-agent = create_coordinator_agent()
-result = agent.input("发表一篇关于悉尼旅游的帖子")
-```
-
-### 使用优化的评审
-
-```python
-from tools.review_optimized import review_content_optimized
-
-# 并行评审 + 自动缓存
-result = review_content_optimized({
-    "title": "悉尼旅游攻略",
-    "content": "分享我的悉尼之旅...",
-    "topic": "悉尼旅游"
-})
-
-print(f"评分: {result['overall']['score']}/10")
-print(f"决策: {result['overall']['action_text']}")
-```
-
----
-
-## 🎉 版本特性
-
-### v0.7（当前版本）⚡
-
-- ✅ 并行执行系统（提升 7.7%）
-- ✅ 智能缓存系统（加速 20000x）
-- ✅ 性能测试 100% 通过
-
-### v0.6
-
-- ✅ 评审系统集成到 Coordinator
-- ✅ 端到端测试通过
-
-### v0.5
-
-- ✅ Quality Reviewer Agent 实现
-- ✅ 5维质量评估
-
-### v0.4
-
-- ✅ Engagement Reviewer Agent 实现
-- ✅ 数据驱动评审
 
 ---
 
@@ -234,6 +137,23 @@ print(f"决策: {result['overall']['action_text']}")
 - **图片生成**: DALL-E 3 / Stable Diffusion
 - **MCP 服务**: [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp)
 - **语言**: Python 3.8+
+
+---
+
+## 🎉 版本历史
+
+### v0.7（当前）⚡
+- 并行执行 + 智能缓存
+- 性能提升 99%，成本节省 70%
+
+### v0.6
+- 评审系统集成
+
+### v0.5
+- Quality Reviewer Agent
+
+### v0.4
+- Engagement Reviewer Agent
 
 ---
 
