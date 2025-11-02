@@ -61,7 +61,8 @@ temp/
 outputs/
 generated/
 
-# Markdown files (except in prompts/)
+# Markdown files (except in specific directories)
 *.md
 !prompts/*.md
+!docs/*.md
 !README.md
