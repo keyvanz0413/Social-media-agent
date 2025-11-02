@@ -15,6 +15,7 @@ except ImportError:
 # 导入工具函数
 from tools.content_analyst import agent_a_analyze_xiaohongshu
 from tools.content_creator import agent_c_create_content
+from tools.image_generator import generate_images_for_content, generate_images_from_draft
 from tools.publisher import publish_to_xiaohongshu
 
 # 导入配置
@@ -48,6 +49,8 @@ def create_coordinator_agent():
     tools = [
         agent_a_analyze_xiaohongshu,
         agent_c_create_content,
+        generate_images_for_content,
+        generate_images_from_draft,
         publish_to_xiaohongshu
     ]
     
@@ -102,22 +105,33 @@ def _get_default_system_prompt() -> str:
 4. **质量控制**：确保最终内容符合小红书平台规范和用户预期
 
 ## 可用工具
-- `agent_a_analyze_xiaohongshu(keyword: str, limit: int = 5)`: 分析小红书热门内容
+- `agent_a_analyze_xiaohongshu(keyword: str, limit: int = 5, quality_level: str = "balanced")`: 分析小红书热门内容
   - 返回 JSON 字符串，包含标题模式、用户需求、创作建议等
   
-- `agent_c_create_content(analysis_result: str, topic: str, style: str = "casual")`: 创作小红书帖子
+- `agent_c_create_content(analysis_result: str, topic: str, style: str = "casual", quality_level: str = "balanced")`: 创作小红书帖子
   - 参数：analysis_result（JSON字符串）、topic（主题）、style（风格：casual/professional/storytelling）
-  - 返回 JSON 字符串，包含标题、正文、标签等
+  - 返回 JSON 字符串，包含标题、正文、标签、**image_suggestions**（图片建议列表）等
+  
+- `generate_images_for_content(image_suggestions: str, topic: str, count: int = None, method: str = "dalle")`: 使用 AI 生成图片
+  - 参数：image_suggestions（图片建议JSON字符串）、topic（主题）、count（数量）、method（方法：dalle/local）
+  - 返回 JSON 字符串，包含生成的图片路径列表
+  - **重要**：method="dalle" 是推荐方法，使用 DALL-E 3 AI 生成高质量图片
+  - **注意**：需要配置 OPENAI_API_KEY
+  
+- `generate_images_from_draft(draft_id: str, method: str = "dalle", count: int = None)`: 从草稿使用 AI 生成图片
+  - 参数：draft_id（草稿ID，从创作结果的metadata中获取）、method（生成方法：dalle/local）
+  - 返回 JSON 字符串，包含生成的图片路径列表
   
 - `publish_to_xiaohongshu(title: str, content: str, images: List[str] = None, video_path: str = None, tags: List[str] = None)`: 发布内容到小红书
-  - 参数：title（标题）、content（正文）、images（图片路径列表）、video_path（视频路径）、tags（标签列表）
+  - 参数：title（标题）、content（正文）、**images（图片路径列表，必需）**、video_path（视频路径）、tags（标签列表）
   - 返回 JSON 字符串，包含发布结果
+  - **注意**：必须提供 images 或 video_path，至少一个
 
-## 工作流程（MVP 版本）
+## 工作流程（完整版本）
 
 ### 标准流程
 ```
-用户需求 → 内容分析 → 内容创作 → 发布
+用户需求 → 内容分析 → 内容创作 → 图片生成 → 发布
 ```
 
 ### 执行步骤
@@ -125,10 +139,17 @@ def _get_default_system_prompt() -> str:
 2. 解析分析结果 JSON，提取有用信息
 3. 使用 `agent_c_create_content` 基于分析结果创作内容
    - 将分析结果的 JSON 字符串直接传递给 `analysis_result` 参数
-4. 解析创作结果 JSON，提取标题、正文、标签、图片建议等
-5. 使用 `publish_to_xiaohongshu` 发布最终内容
+   - 返回结果包含 **image_suggestions**（图片建议列表）和 **draft_id**
+4. 使用 `generate_images_from_draft` 或 `generate_images_for_content` 使用 AI 生成图片
+   - 推荐使用 draft_id 调用 `generate_images_from_draft`，这样会自动读取图片建议
+   - 或者从创作结果中提取 image_suggestions，调用 `generate_images_for_content`
+   - 推荐使用 method="dalle"（DALL-E 3 AI 生成，高质量且完全可控）
+   - 需要确保 OPENAI_API_KEY 已配置
+5. 解析图片生成结果，提取图片路径列表
+6. 使用 `publish_to_xiaohongshu` 发布最终内容
    - 从创作结果中提取标题、正文、标签
-   - 如果有图片建议，可以提示用户准备图片
+   - 从图片生成结果中提取图片路径列表
+   - **必须提供图片路径**，否则发布会失败
 
 ## 注意事项
 - **工具函数返回的都是 JSON 格式字符串**，需要解析后使用
@@ -150,9 +171,26 @@ def _get_default_system_prompt() -> str:
 1. 调用 `agent_a_analyze_xiaohongshu("澳洲旅游", limit=5)`
 2. 解析结果，告诉用户发现了哪些标题模式和用户需求
 3. 调用 `agent_c_create_content(分析结果JSON, "澳洲旅游", "casual")`
-4. 解析结果，告诉用户创作的内容标题和摘要
-5. 调用 `publish_to_xiaohongshu(标题, 正文, 图片列表, 标签列表)`
-6. 告知用户发布结果"""
+4. 解析创作结果，提取 draft_id、标题、正文等
+5. 调用 `generate_images_from_draft(draft_id, method="dalle")` 使用 AI 生成图片
+   - 或者提取 image_suggestions，调用 `generate_images_for_content(image_suggestions, "澳洲旅游", method="dalle")`
+6. 解析图片生成结果，提取图片路径列表（images字段中每个元素的path字段）
+7. 调用 `publish_to_xiaohongshu(标题, 正文, images=图片路径列表, tags=标签列表)`
+8. 告知用户发布结果（成功或失败原因）
+
+## 图片生成方法选择
+- **dalle**（推荐）：DALL-E 3 AI 生成，高质量、完全可控、创意无限
+  - 需要 OPENAI_API_KEY
+  - 费用：约 $0.04/张（standard）或 $0.08/张（hd）
+  - 适合所有场景，特别是需要创意或特定场景的图片
+- **local**：本地 Stable Diffusion，完全免费但需要本地部署
+  - 需要本地部署 SD WebUI
+  - 需要较强的 GPU
+  - 适合高频使用、预算有限的场景
+
+**注意**：Unsplash 和 Pexels 已经集成在 MCP 中，如需搜索图库，请使用 MCP 的相关工具。
+
+默认使用 DALL-E 3 生成，提供最佳质量和灵活性。"""
 
 
 def main():
