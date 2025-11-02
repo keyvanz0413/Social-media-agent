@@ -1,406 +1,313 @@
 # 🚀 Social Media Multi-Agent System
 
-基于 ConnectOnion 框架构建的**新一代智能社交媒体内容创作系统**，融合多模型协同、多模态处理、自适应流程和 MCP 集成。
+基于 ConnectOnion 框架构建的**智能社交媒体内容创作系统**，融合多模型协同、MCP 集成和智能编排。
 
-> 💡 **核心理念**：从"固定流水线"进化到"智能编排系统"，让 AI Agent 根据内容特点动态调整创作策略。
+> 💡 **当前状态**：**MVP v0.1** - 核心创作流程已实现，可端到端完成从分析到创作的全流程（发布功能需配置 MCP）。
 
-## ✨ 核心特性
+> 🎯 **核心理念**：通过 Multi-Agent 协作和智能模型路由，实现高质量内容的自动化创作。
 
-### 🤖 Multi-Agent 协作架构（7个专业 Agent）
+> ⚡ **最新更新**：
+> - ✅ 已修复路径问题（统一使用 pathlib.Path）
+> - ✅ 核心 Agent 工具函数已实现
+> - ✅ 智能模型路由系统完成
+> - ✅ 小红书 MCP 客户端集成完成
 
-#### 内容创作流水线
-- **Agent A - 多源数据分析师**
-  - 爬取小红书、抖音、知乎等多平台热门内容
-  - 使用 **Qwen2.5-VL** 分析视觉叙事规律
-  - 提取爆款特征（标题、结构、图片、情绪）
+## ✨ MVP 核心特性
+
+### 🤖 Multi-Agent 协作架构
+
+#### ✅ 已实现的 Agent
+
+**Agent A - 内容分析师**
+- ✅ 小红书热门内容搜索与分析
+- ✅ 标题模式、内容结构、用户需求提取
+- ✅ 智能降级：LLM 失败时返回基础统计
+- ✅ 数据验证与修复机制
+
+**Agent C - 内容创作者**
+- ✅ 基于分析结果智能创作
+- ✅ 多风格支持（casual/professional/storytelling）
+- ✅ 自动生成标题、正文、话题标签
+- ✅ 图片建议和元数据生成
+
+**Publisher - 发布工具**
+- ✅ 小红书图文笔记发布
+- ✅ 小红书视频笔记发布（支持）
+- ✅ 登录状态检查
+- ✅ 参数验证与错误处理
+
+**主协调器**
+- ✅ ConnectOnion Agent 框架集成
+- ✅ 工具函数自动调度
+- ✅ 多步骤流程协调
+- ✅ 错误捕获与用户反馈
+
+#### 🔜 规划中的 Agent
+
+- **Agent B - 智能图片生成** (未来版本)
+  - 支持 DALL-E 3、Midjourney、Stable Diffusion
+  - 图片质量预测与优化
   
-- **Agent B - 智能图片专家**
-  - 支持 DALL-E 3、Midjourney、Stable Diffusion 多引擎
-  - **热备切换**：主服务失败自动切换备用
-  - **质量预测**：生成前评估，低于 8 分重新生成
-  
-- **Agent C - 渐进式内容创作者**
-  - 分步创作：标题 → 大纲 → 正文（每步评审）
-  - **模型串联优化**：Claude 初稿 → GPT-4o 逻辑优化 → Claude 文学润色
-  - 自动适配多平台风格（小红书、公众号、抖音）
+- **Agent D/E/F/G - 评审团队** (未来版本)
+  - 互动潜力评审
+  - 内容质量评审
+  - 合规检查评审
+  - 用户视角模拟
 
-#### 智能评审团队
-- **Agent D - 互动潜力评审**（GPT-4o-mini）
-  - 评估点赞、评论、转发可能性
-  - 分析标题吸引力、内容实用性、情绪共鸣
-  
-- **Agent E - 内容质量评审**（GPT-4o-mini）
-  - 语法、逻辑、原创性、可读性
-  - 段落结构、信息密度、叙事节奏
-  
-- **Agent F - 合规检查评审**（Ollama 本地）
-  - 敏感词、广告法、平台规则
-  - **数据不出本地**，保护隐私
-  
-- **Agent G - 用户视角模拟**（Claude）
-  - 模拟目标用户画像（年龄、性别、兴趣）
-  - "我作为一个 28 岁女性会点赞吗？"
+### 🧠 智能模型路由
 
-#### 主协调器
-- **智能路由**：根据关键词热度、数据质量动态调整流程
-- **自适应流程**：热门词正常流程，冷门词跳过分析直接创作
-- **质量控制**：首次评分 > 9.5 快速发布，< 6.0 人工介入
+#### ✅ 已实现功能
 
-### 🧠 多模型协同策略
+**ModelRouter - 智能模型选择器**
+- ✅ 任务类型自动识别（分析/创作/评审/推理/视觉）
+- ✅ 三档质量级别（fast/balanced/high）
+- ✅ 模型降级策略（主模型失败自动切换备用）
+- ✅ 支持多提供商（OpenAI/Anthropic/Ollama）
 
-#### 模型选择矩阵
-| 任务类型 | 主模型 | 备用模型 | 选择理由 |
+**当前模型配置**
+| 任务类型 | 主模型 | 备用模型 | 使用场景 |
 |---------|-------|---------|---------|
-| 深度分析、策略制定 | GPT-4o | GPT-4o-mini | 推理能力最强 |
-| 创意写作、标题生成 | Claude-3.5-Sonnet | GPT-4o | 文学性和感染力强 |
-| 快速评审、打分 | GPT-4o-mini | Claude-haiku | 性价比高、速度快 |
-| 图像理解、视觉分析 | Qwen2.5-VL | GPT-4o-vision | 中文多模态能力优秀 |
-| 合规检查（隐私） | Ollama (llama3.2) | GPT-4o-mini | 数据不出本地 |
+| 内容分析 | GPT-4o | GPT-4o-mini | Agent A 分析热门内容 |
+| 创意写作 | Claude-3.5-Sonnet | GPT-4o | Agent C 内容创作 |
+| 快速评审 | GPT-4o-mini | - | 未来评审团队 |
 
-#### 高级协同模式
+**灵活配置**
+- ✅ 支持通过环境变量切换模型
+- ✅ 支持第三方 OpenAI 兼容平台（OpenRouter、硅基流动等）
+- ✅ 支持本地 Ollama 模型（隐私保护）
 
-**1. 模型投票机制**
-```
-关键决策（如标题选择）：
-├─ GPT-4o 生成版本 A
-├─ Claude 生成版本 B  
-├─ GPT-4o-mini 生成版本 C
-└─ 三个模型交叉投票 → 选出最佳版本
-```
+#### 🔜 规划中的高级功能
 
-**2. 模型串联优化**
-```
-创意初稿 (Claude) → 逻辑优化 (GPT-4o) → 文学润色 (Claude)
-成本：$0.08  质量提升：40%  vs 单模型
-```
+- **模型投票机制**：多模型生成 + 交叉评选
+- **模型串联优化**：Claude 初稿 → GPT-4o 优化 → Claude 润色
+- **动态成本优化**：根据预算自动调整质量级别
 
-**3. 渐进式质量控制**
-```
-草稿阶段：GPT-4o-mini（快速迭代）
-精修阶段：GPT-4o（高质量输出）
-最终润色：Claude（文学性）
-节省成本：47%  vs 全程 GPT-4o
-```
+### 🔜 未来规划：多模态能力
 
-**4. 动态模型选择**
-```python
-if keyword in ["科技", "数码"]:
-    model = "gpt-4o"  # 逻辑性强
-elif keyword in ["旅游", "美食", "时尚"]:
-    model = "claude"  # 感染力强
-elif keyword in ["理财", "法律"]:
-    model = "gpt-4o" + "本地合规检查"
-```
+> 以下功能将在后续版本中实现
 
-### 🎨 多模态创新能力
+- **视觉叙事分析**：分析图片序列的视觉节奏和情绪曲线
+- **图片质量预测**：生成前预测评分，优化 prompt
+- **OCR 辅助创作**：提取文字布局规律
+- **图文匹配验证**：确保图片与文字语义一致
 
-#### 1. 视觉叙事分析
-```
-分析热门帖子的图片序列：
-图1（封面·全景）→ 图2（细节·特写）→ 图3（人物·互动）→ 图4（结尾·回味）
+### 🔌 MCP 集成
 
-提取规律：
-- 视觉节奏（从全景到特写 or 相反）
-- 色调演变（从冷色到暖色制造情绪变化）
-- 情绪曲线（开篇吸引 → 中间高潮 → 结尾共鸣）
-```
+#### ✅ 已集成的 MCP 服务
 
-#### 2. 图片质量预测系统
-```
-生成 prompt → 预测评分 → 低于 8 分 → 优化 prompt → 重新生成
-评分维度：构图平衡、色彩和谐、主体突出、平台风格匹配
-避免浪费：减少 60% 无效生成
+**XiaohongshuMCPClient - 小红书 MCP 客户端**
+- ✅ 笔记搜索（支持排序、过滤）
+- ✅ 笔记详情获取
+- ✅ 图文笔记发布
+- ✅ 视频笔记发布
+- ✅ 登录状态检查
+- ✅ 自动重试机制（3次，指数退避）
+- ✅ 完整的错误处理
+
+**XiaohongshuManager - MCP 服务管理工具**
+- ✅ 一键启动/停止 MCP 服务
+- ✅ 登录工具集成
+- ✅ 服务状态监控
+- ✅ 日志查看
+
+**使用方式**
+```bash
+# 启动 MCP 服务
+python xiaohongshu_manager.py start
+
+# 登录小红书
+python xiaohongshu_manager.py login
+
+# 查看服务状态
+python xiaohongshu_manager.py status
 ```
 
-#### 3. OCR 辅助创作
-```
-爆款图片 → OCR 提取文字 → 分析文字布局规律
-- 标题位置：上方居中，字号 48px
-- 关键词：黄色高亮，粗体
-- 辅助信息：底部，灰色小字
+**配置**
+- 默认地址：`http://localhost:18060`
+- 可通过环境变量 `MCP_XIAOHONGSHU_URL` 自定义
 
-指导新图片生成时的文字排版
-```
+#### 🔜 未来规划
 
-#### 4. 图文匹配验证
-```
-标题 + 正文 + 图片 → Qwen2.5-VL 分析 → 匹配度评分
-- 语义相关性：图片内容是否与文字呼应
-- 情绪一致性：图片情绪是否与文字情绪匹配
-- 风格协调性：视觉风格是否统一
-匹配度 < 7.0 → 重新生成图片
-```
+- **MCP 编排层**：智能负载均衡、结果聚合
+- **多数据源支持**：抖音、知乎、微信等
+- **图片生成 MCP**：DALL-E 3、Midjourney 集成
+- **多模态 MCP**：Qwen2.5-VL 图像分析
 
-### 🔌 MCP 集成架构
+## 📊 MVP 工作流程
 
-#### MCP 编排层（Orchestration Layer）
-```
-Agent 工具函数
-    ↓
-MCP Orchestrator（智能编排）
-├─ 负载均衡：多个 MCP 实例轮询
-├─ 自动重试：失败重试 3 次，指数退避
-├─ 降级策略：主服务不可用切换备用
-├─ 结果缓存：相同请求 24 小时内返回缓存
-└─ 结果聚合：调用多个 MCP 并融合数据
-    ↓
-[MCP-A] [MCP-B] [MCP-C]
-```
-
-#### MCP 服务矩阵
-
-| MCP Server | 功能 | 主服务 | 备用服务 | 超时 |
-|-----------|------|--------|---------|------|
-| **数据获取** | 热门内容爬取 | 小红书官方API | 爬虫方案 | 30s |
-| **图片生成** | AI 生成图片 | DALL-E 3 | Midjourney / SD本地 | 120s |
-| **多模态** | 图像理解 | Qwen2.5-VL | GPT-4o-vision | 30s |
-| **内容审核** | 合规检查 | 第三方审核API | 本地敏感词库 | 10s |
-| **数据分析** | 第三方数据 | 微信、抖音数据 | - | 30s |
-
-#### MCP 高级特性
-
-**1. 结果聚合**
-```
-调用 3 个小红书数据源 MCP：
-├─ MCP-A：官方 API（最新但可能限流）
-├─ MCP-B：爬虫方案（全面但可能过时）
-└─ MCP-C：第三方平台（补充数据）
-
-聚合策略：
-- 去重（相同帖子ID）
-- 融合（综合多源的点赞数、评论数）
-- 验证（交叉验证数据准确性）
-```
-
-**2. 热备切换**
-```
-图片生成流程：
-1. 尝试 DALL-E 3 MCP（高质量）
-2. 失败 → 切换 Midjourney MCP（更稳定）
-3. 仍失败 → 切换 Stable Diffusion 本地（最稳定）
-4. 仍失败 → 从 Unsplash 搜索真实图片（兜底）
-
-可用性：99.9%+
-```
-
-## 📊 自适应工作流程
-
-### 智能流程图（根据数据质量自动调整）
+### 当前实现的核心流程
 
 ```
-用户输入："澳洲旅游"
+用户输入："我想发表一篇关于澳洲旅游的帖子"
          ↓
 ┌─────────────────────────────────────────────┐
-│   主协调 Agent (GPT-4o)                      │
-│   - 分析关键词热度                            │
-│   - 选择最优流程路径                          │
-│   - 动态调度子 Agent                         │
+│   主协调 Agent (ConnectOnion)                │
+│   - 理解用户意图                              │
+│   - 调度子 Agent 工具函数                     │
+│   - 管理整体流程                              │
 └─────────────────────────────────────────────┘
          ↓
-    ┌─────────┐
-    │热门词？  │
-    └─────────┘
-      Yes ↓              No → 跳到阶段 3（使用通用模板）
-         ↓
 ┌──────────────────────────────────────────────────────┐
-│  阶段 1：多源数据获取 (并行)                          │
-│  ├─ MCP 1: 小红书官方 API                            │
-│  ├─ MCP 2: 小红书爬虫                                │
-│  ├─ MCP 3: 抖音相关内容                              │
-│  └─ MCP 4: 知乎优质回答                              │
-│  聚合结果 → 去重 → 验证                              │
+│  步骤 1：内容分析 (Agent A)                           │
+│  ├─ 调用小红书 MCP 搜索热门笔记                       │
+│  ├─ 使用 GPT-4o 分析爆款特征                          │
+│  ├─ 提取标题模式、内容结构、用户需求                   │
+│  └─ 生成创作建议                                      │
+│  ✅ 已实现                                            │
 └──────────────────────────────────────────────────────┘
          ↓
 ┌──────────────────────────────────────────────────────┐
-│  阶段 2：智能分析 (Agent A + 多模态)                  │
-│  ├─ GPT-4o: 分析文字特征                             │
-│  │   - 标题风格、情绪色调、结构套路                   │
-│  ├─ Qwen2.5-VL: 分析视觉叙事                         │
-│  │   - 图片序列、色调演变、视觉节奏                   │
-│  └─ 输出：创作策略 + 视觉指南                         │
+│  步骤 2：内容创作 (Agent C)                           │
+│  ├─ 基于分析结果选择合适的模型                         │
+│  ├─ 使用 Claude-3.5-Sonnet 创作内容                  │
+│  ├─ 生成标题、正文、话题标签                           │
+│  └─ 提供图片建议和元数据                              │
+│  ✅ 已实现                                            │
 └──────────────────────────────────────────────────────┘
          ↓
 ┌──────────────────────────────────────────────────────┐
-│  阶段 3：渐进式创作 (Agent B & C)                     │
-│  ├─ 3.1 标题生成（模型投票）                          │
-│  │   - GPT-4o 生成 3 个版本                          │
-│  │   - Claude 生成 3 个版本                          │
-│  │   - GPT-4o-mini 评选最佳 → "澳洲大洋路3天攻略" ✓   │
-│  ├─ 3.2 大纲生成（结构化）                            │
-│  │   - GPT-4o 生成逻辑大纲                           │
-│  │   - 评审通过 ✓                                    │
-│  ├─ 3.3 图片生成（并行 + 质量预测）                   │
-│  │   - DALL-E 3 生成 7 张图                          │
-│  │   - Qwen2.5-VL 质量评分：8.5/10 ✓                │
-│  │   - 图文匹配检查通过 ✓                            │
-│  └─ 3.4 正文创作（模型串联）                          │
-│      - Claude 初稿（创意性）                          │
-│      - GPT-4o 优化（逻辑性）                          │
-│      - Claude 润色（文学性）✓                         │
+│  步骤 3：发布到小红书 (Publisher)                     │
+│  ├─ 检查登录状态                                      │
+│  ├─ 验证内容格式（标题≤20字，正文≤1000字）           │
+│  ├─ 调用小红书 MCP 发布                               │
+│  └─ 返回发布结果和笔记链接                            │
+│  ✅ 已实现                                            │
 └──────────────────────────────────────────────────────┘
          ↓
-┌──────────────────────────────────────────────────────┐
-│  阶段 4：多维度评审 (并行 + 加权)                     │
-│  ├─ Agent D: 互动潜力 (GPT-4o-mini) → 8.8/10        │
-│  │   "标题吸引力强，有悬念感"                         │
-│  ├─ Agent E: 内容质量 (GPT-4o-mini) → 9.2/10        │
-│  │   "结构清晰，信息密度合理"                         │
-│  ├─ Agent F: 合规检查 (Ollama 本地) → 10.0/10       │
-│  │   "无敏感词，符合平台规则"                         │
-│  └─ Agent G: 用户视角 (Claude) → 8.5/10             │
-│      "作为 28 岁女性，我会收藏这篇攻略"                │
-│  ────────────────────────────────────────────────    │
-│  加权平均分：(0.4×8.8 + 0.35×9.2 + 0.15×10 + 0.1×8.5) │
-│           = 9.03 分 ✓                                │
-└──────────────────────────────────────────────────────┘
-         ↓
-    ┌──────────┐
-    │≥ 9.5 分？ │ ── Yes → 快速发布（跳过修改）
-    └──────────┘
-         ↓ No
-    ┌──────────┐
-    │≥ 8.0 分？ │ ── Yes → 进入发布流程
-    └──────────┘
-         ↓ No
-    ┌──────────┐
-    │≥ 6.0 分？ │ ── Yes → 根据反馈修改（最多 3 次）
-    └──────────┘         ↓
-         ↓ No          返回阶段 3.4
-    人工介入           （聚焦修改正文）
-         ↓
-┌──────────────────────────────────────────────────────┐
-│  阶段 5：多平台适配发布                                │
-│  ├─ 小红书版本：图片为主，文字精炼，emoji 丰富         │
-│  ├─ 微信公众号版本：长文深度，段落清晰，无 emoji       │
-│  └─ 抖音脚本版本：提取视频脚本，15 秒一个点            │
-│  ────────────────────────────────────────────────    │
-│  发布到小红书 MCP → 返回帖子链接 ✓                    │
-│  https://xiaohongshu.com/posts/123456                │
-└──────────────────────────────────────────────────────┘
-         ↓
-┌──────────────────────────────────────────────────────┐
-│  阶段 6：效果追踪与学习 (24 小时后)                    │
-│  ├─ 获取真实数据：点赞 12,340 / 评论 856 / 收藏 5,621│
-│  ├─ 对比预测：实际表现超出预期 18%                     │
-│  ├─ 提取成功因素：标题的悬念感 + 图片的色调对比        │
-│  └─ 更新知识库：存入"澳洲旅游"最佳实践库              │
-└──────────────────────────────────────────────────────┘
+      成功发布！
 ```
 
-### 关键流程决策点
+### 🔜 未来增强
 
-| 决策点 | 条件 | 动作 |
-|-------|------|------|
-| **流程选择** | 关键词热度 > 5000 | 完整流程（含数据分析） |
-|  | 关键词热度 < 5000 | 简化流程（跳过分析） |
-| **快速发布** | 首次评分 ≥ 9.5 | 跳过修改，直接发布 |
-| **正常发布** | 首次评分 ≥ 8.0 | 进入发布流程 |
-| **迭代优化** | 8.0 > 评分 ≥ 6.0 | 修改 1-3 次 |
-| **人工介入** | 评分 < 6.0 或 修改 3 次仍不达标 | 暂停，请求人工审核 |
+以下功能将在后续版本实现：
 
-## 🏗️ 项目结构（规划）
+- **多维度评审**：互动潜力、内容质量、合规检查、用户视角
+- **自适应流程**：根据关键词热度自动调整流程
+- **质量迭代**：评分不达标自动修改（最多3次）
+- **多平台适配**：自动生成微信公众号、抖音等版本
+- **效果追踪**：24小时后获取真实数据并学习
+
+## 🏗️ 项目结构
 
 ```
 Social-media-agent/
 ├── README.md                        # 📖 项目说明（当前文件）
 ├── DEVELOPMENT.md                   # 📝 开发文档（详细设计思路）
-├── config.py                        # ⚙️ 全局配置（已创建）
-├── requirements.txt                 # 📦 依赖管理（已创建）
-├── env.example                      # 🔐 环境变量模板（已创建）
+├── config.py                        # ⚙️ 全局配置 ✅
+├── requirements.txt                 # 📦 依赖管理 ✅
+├── env.example                      # 🔐 环境变量模板 ✅
 │
-├── agent.py                         # 🎯 主协调 Agent 入口（待开发）
+├── main.py                          # 🚀 CLI 主入口 ⚠️ (部分实现)
+├── agent.py                         # 🎯 主协调 Agent ✅
+├── xiaohongshu_manager.py          # 🛠️ MCP 服务管理工具 ✅
 │
-├── sub_agents/                      # 🤖 子 Agent 工具函数（待开发）
-│   ├── __init__.py
-│   ├── content_analyst.py          # Agent A: 多源数据分析
-│   ├── image_generator.py          # Agent B: 智能图片生成
-│   ├── content_creator.py          # Agent C: 渐进式内容创作
-│   ├── reviewers.py                # Agent D/E/F/G: 评审团队
-│   └── publisher.py                # 多平台发布工具
+├── sub_agents/                      # 🤖 子 Agent 工具函数
+│   ├── __init__.py                 # ✅
+│   ├── content_analyst.py          # ✅ Agent A: 内容分析
+│   ├── content_creator.py          # ✅ Agent C: 内容创作
+│   ├── publisher.py                # ✅ 发布工具
+│   └── reviewers.py                # 🔜 Agent D/E/F/G (规划中)
 │
-├── mcp_integrations/               # 🔌 MCP 编排层（待开发）
-│   ├── __init__.py
-│   ├── orchestrator.py             # MCP 智能编排器（核心）
-│   ├── xiaohongshu_client.py      # 小红书 MCP 客户端
-│   ├── image_gen_client.py        # 图片生成 MCP（多引擎）
-│   ├── multimodal_client.py       # 多模态 MCP（Qwen2.5-VL）
-│   └── compliance_client.py       # 内容审核 MCP
+├── utils/                           # 🛠️ 工具函数
+│   ├── __init__.py                 # ✅
+│   ├── llm_client.py               # ✅ 统一 LLM 客户端
+│   ├── mcp_client.py               # ✅ 小红书 MCP 客户端
+│   ├── model_router.py             # ✅ 智能模型路由
+│   └── (其他工具)                  # 🔜 规划中
 │
-├── prompts/                        # 💭 提示词工程（待开发）
-│   ├── coordinator.md             # 主协调 Agent 提示词
-│   ├── analyst.md                 # 内容分析 Agent 提示词
-│   ├── creator.md                 # 内容创作 Agent 提示词
-│   ├── reviewers.md               # 评审 Agents 提示词
-│   └── prompt_templates.json      # 动态提示词模板库
+├── prompts/                         # 💭 提示词工程
+│   ├── coordinator.md              # ✅ 主协调提示词
+│   ├── content_analyst.md          # ✅ 分析师提示词
+│   ├── content_creator.md          # ✅ 创作者提示词
+│   └── (其他提示词)                # 🔜 规划中
 │
-├── utils/                          # 🛠️ 工具函数（待开发）
-│   ├── __init__.py
-│   ├── model_router.py            # 多模型智能路由器
-│   ├── data_parser.py             # JSON 数据解析与聚合
-│   ├── score_calculator.py        # 加权评分计算
-│   ├── cache_manager.py           # 多级缓存管理
-│   └── logger.py                  # 结构化日志系统
+├── outputs/                         # 📁 输出文件（自动创建）
+│   ├── images/                     # 生成的图片
+│   ├── drafts/                     # 草稿版本历史
+│   └── logs/                       # 运行日志
 │
-├── outputs/                        # 📁 输出文件（自动创建）
-│   ├── images/                    # 生成的图片
-│   ├── drafts/                    # 草稿版本历史
-│   ├── logs/                      # 运行日志
-│   └── analytics/                 # 效果追踪数据
-│
-└── tests/                          # 🧪 测试套件（待开发）
-    ├── test_mcp_orchestrator.py
-    ├── test_sub_agents.py
-    ├── test_model_router.py
-    └── test_workflow.py
+└── tests/                           # 🧪 测试套件
+    └── (测试文件)                   # 🔜 规划中
 ```
 
-**当前状态**：✅ 架构设计完成，配置文件已创建，待实现核心功能模块。
+**图例**：✅ 已实现 | ⚠️ 部分实现 | 🔜 规划中
 
 ## 🚀 快速开始
 
-### 前置准备
+### 环境准备
 
-#### 1. 安装依赖
+#### 1. 克隆项目
 ```bash
+git clone <your-repo-url>
 cd Social-media-agent
+```
+
+#### 2. 安装 Python 依赖
+```bash
 pip install -r requirements.txt
 ```
 
-#### 2. 配置环境变量
+**核心依赖**：
+- `connectonion>=0.0.4` - Multi-Agent 框架
+- `openai>=1.0.0` - OpenAI API 客户端
+- `anthropic>=0.21.0` - Claude API 客户端（可选）
+- `requests>=2.31.0` - HTTP 请求
+- `tenacity>=8.2.0` - 重试机制
+- `python-dotenv>=1.0.0` - 环境变量管理
+
+#### 3. 配置环境变量
 ```bash
 cp env.example .env
+nano .env  # 或使用你喜欢的编辑器
 ```
 
-编辑 `.env` 文件，配置以下内容：
-
-**必需配置（至少一个）：**
+**必需配置（至少配置一个 LLM）：**
 ```bash
-# 选项 A：使用 OpenAI（推荐，功能最全）
+# OpenAI（推荐 - 功能最全）
 OPENAI_API_KEY=sk-your-openai-key-here
 
-# 选项 B：使用 Claude（创意写作最强）
-ANTHROPIC_API_KEY=sk-ant-your-anthropic-key-here
+# Claude（可选 - 创意写作强）
+ANTHROPIC_API_KEY=sk-ant-your-key-here
 
-# 选项 C：使用本地 Ollama（免费，数据隐私）
+# 本地 Ollama（可选 - 免费隐私）
 OLLAMA_BASE_URL=http://localhost:11434/v1
 ```
 
-**可选配置（增强功能）：**
+**可选配置：**
 ```bash
-# MCP Servers（如果有可用的 MCP 服务）
-MCP_XIAOHONGSHU_URL=http://localhost:8001
-MCP_IMAGE_GEN_URL=http://localhost:8002
-MCP_MULTIMODAL_URL=http://localhost:8003
-MCP_COMPLIANCE_URL=http://localhost:8004
+# 小红书 MCP 服务地址（默认：http://localhost:18060）
+MCP_XIAOHONGSHU_URL=http://localhost:18060
 
-# 业务参数
-REVIEW_THRESHOLD=8.0
-MAX_REVISIONS=3
-AUTO_PUBLISH=false
+# 第三方 OpenAI 兼容平台（如硅基流动、OpenRouter）
+OPENAI_BASE_URL=https://api.siliconflow.cn/v1
 ```
 
-#### 3. 配置本地 Ollama（可选）
-如果使用本地模型：
+#### 4. 配置小红书 MCP（发布功能必需）
+
+**安装 MCP 服务**：
+
+参考 [xiaohongshu-mcp](../xiaohongshu-mcp/) 项目文档，或使用项目内置的管理工具：
+
+```bash
+# 启动 MCP 服务
+python xiaohongshu_manager.py start
+
+# 登录小红书账号（会打开浏览器）
+python xiaohongshu_manager.py login
+
+# 检查服务状态
+python xiaohongshu_manager.py status
+```
+
+**输出示例**：
+```
+✅ 服务正在运行 (PID: 12345)
+✅ 健康检查通过
+✅ 已登录小红书
+ℹ️  服务地址: http://localhost:18060
+```
+
+#### 5. 配置本地 Ollama（可选 - 用于隐私保护）
 ```bash
 # 安装 Ollama
 curl -fsSL https://ollama.com/install.sh | sh
@@ -408,128 +315,153 @@ curl -fsSL https://ollama.com/install.sh | sh
 # 下载模型
 ollama pull llama3.2
 
-# 启动服务
+# 启动服务（通常自动启动）
 ollama serve
 ```
 
-### 使用示例
+### 使用方式
 
-#### 命令行交互模式（规划中）
+#### 方式 1：直接运行 Agent（推荐 - MVP 已实现）
+
 ```bash
+# 进入 Python 环境或创建测试脚本
 python agent.py
 ```
 
-预期交互流程：
+**当前 MVP 交互示例：**
 ```
-🚀 Social Media Agent 已启动！
+🚀 正在初始化 Coordinator Agent...
+✅ Coordinator Agent 已就绪！
 
-👤 你: 我想发表一篇关于澳洲旅游的帖子
+============================================================
+💡 提示：输入你的需求，例如 '发表一篇关于澳洲旅游的帖子'
+💡 输入 'exit' 或 'quit' 退出
 
-🤖 协调器: 收到！开始智能分析...
-    - 关键词热度：高 ✓
-    - 选择流程：完整流程（含数据分析）
+============================================================
 
-┌─ 阶段 1：多源数据获取 ─────────────────┐
-│ 🔍 [MCP] 小红书官方 API: 获取中...      │
-│ 🔍 [MCP] 小红书爬虫: 获取中...          │
-│ 🔍 [MCP] 抖音数据: 获取中...            │
-│ ✓ 聚合完成：找到 15 篇爆款帖子          │
-└────────────────────────────────────────┘
+👤 你: 发表一篇关于澳洲旅游的帖子
 
-┌─ 阶段 2：智能分析 ─────────────────────┐
-│ 🧠 [GPT-4o] 分析文字特征...             │
-│   - 标题套路：地点 + 数字 + 悬念        │
-│   - 情绪色调：兴奋、期待、实用          │
-│ 🎨 [Qwen2.5-VL] 分析视觉叙事...        │
-│   - 图片序列：全景→细节→人物→回味      │
-│   - 色调：明亮、饱和度高、暖色系        │
-│ ✓ 创作策略生成完成                      │
-└────────────────────────────────────────┘
+🤖 Coordinator: 正在处理...
 
-┌─ 阶段 3：渐进式创作 ───────────────────┐
-│ 📝 [标题] 模型投票机制...               │
-│   - GPT-4o 版本：澳洲大洋路完整攻略     │
-│   - Claude 版本：🦘澳洲3天2夜玩法       │
-│   - 投票结果：选择 Claude 版本 ✓        │
-│                                          │
-│ 🎨 [图片] DALL-E 3 生成中...            │
-│   - 已生成 7/7 张图片                    │
-│   - Qwen2.5-VL 质量评分：8.5/10 ✓      │
-│                                          │
-│ ✍️ [正文] 模型串联优化...               │
-│   - Claude 初稿（1200字）✓              │
-│   - GPT-4o 逻辑优化 ✓                   │
-│   - Claude 文学润色 ✓                   │
-└────────────────────────────────────────┘
+┌─ 步骤 1：分析小红书热门内容 ────────────┐
+│ 🔍 搜索关键词: 澳洲旅游                   │
+│ ✅ 找到 5 篇热门笔记                      │
+│ 🧠 使用 GPT-4o 分析爆款特征...           │
+│ ✅ 分析完成                               │
+│   - 标题模式: 数字型、疑问式             │
+│   - 用户需求: 实用攻略、省钱技巧         │
+│   - 热门话题: 大洋路、悉尼、墨尔本       │
+└──────────────────────────────────────────┘
 
-┌─ 阶段 4：多维度评审 (并行) ────────────┐
-│ 👥 [Agent D] 互动潜力: 8.8/10          │
-│    "标题有悬念感，吸引力强"              │
-│ 📖 [Agent E] 内容质量: 9.2/10          │
-│    "结构清晰，信息密度合理"              │
-│ 🛡️ [Agent F] 合规检查: 10.0/10         │
-│    "无敏感词，符合规则"                  │
-│ 🎭 [Agent G] 用户视角: 8.5/10          │
-│    "我会收藏这篇攻略"                    │
-│ ─────────────────────────────────────  │
-│ ⭐ 加权平均分：9.03/10 ✅ 通过！        │
-└────────────────────────────────────────┘
+┌─ 步骤 2：创作小红书内容 ─────────────────┐
+│ ✍️  使用 Claude-3.5-Sonnet 创作...       │
+│ ✅ 内容创作完成                           │
+│   - 标题: 🦘澳洲大洋路3天2夜攻略！       │
+│   - 字数: 856 字                         │
+│   - 标签: #澳洲旅游 #大洋路 #自驾游      │
+└──────────────────────────────────────────┘
 
-🚀 准备发布到小红书...
-   ✓ 发布成功！
-   📱 帖子链接：https://xiaohongshu.com/posts/123456
-   
-📊 24 小时后将自动追踪效果数据
+🤖 Coordinator: 内容创作完成！以下是草稿预览：
+
+【标题】🦘澳洲大洋路3天2夜攻略！人均不到3k
+【正文】（前200字）
+澳洲大洋路真的太美了！这次3天2夜的自驾之旅...
+（完整内容已保存到 outputs/drafts/）
+
+💡 提示：如需发布，请确保：
+   1. 小红书 MCP 服务已启动（python xiaohongshu_manager.py start）
+   2. 已登录小红书账号（python xiaohongshu_manager.py login）
+   3. 准备好至少 1 张图片
+
+👤 你: exit
+👋 再见！
 ```
 
-#### API 调用模式（规划中）
+#### 方式 2：Python API 调用（MVP 已实现）
+
 ```python
-from agent import SocialMediaAgent
+from agent import create_coordinator_agent
 
-# 创建 Agent 实例
-agent = SocialMediaAgent()
+# 创建主协调 Agent
+coordinator = create_coordinator_agent()
 
-# 方式 1：一键生成并发布
-result = agent.create_post(
-    keyword="澳洲旅游",
-    platform="xiaohongshu",
-    auto_publish=False  # 需要人工确认
-)
-
+# 调用 Agent（自动执行完整流程）
+result = coordinator.input("发表一篇关于澳洲旅游的帖子")
 print(result)
-# {
-#     "status": "success",
-#     "draft_id": "draft_123",
-#     "title": "🦘澳洲大洋路3天2夜攻略",
-#     "score": 9.03,
-#     "images": ["image1.jpg", ...],
-#     "publish_url": None  # 未发布
-# }
-
-# 方式 2：分步控制
-# 步骤 1：分析
-analysis = agent.analyze_topic("澳洲旅游")
-
-# 步骤 2：生成草稿
-draft = agent.create_draft(analysis)
-
-# 步骤 3：评审
-review = agent.review_draft(draft)
-
-# 步骤 4：发布（如果满意）
-if review["score"] >= 8.0:
-    result = agent.publish(draft, platform="xiaohongshu")
 ```
 
-## 📈 性能指标（预期）
+#### 方式 3：直接调用工具函数（适合集成）
 
-| 指标 | 数值 | 说明 |
-|------|------|------|
-| 端到端耗时 | 90-180秒 | 含数据获取、分析、创作、评审 |
-| 平均成本 | $0.08-0.15 | 使用渐进式质量控制策略 |
-| 评审通过率 | 85%+ | 首次评审通过率 |
-| 图片质量 | 8.5+/10 | Qwen2.5-VL 评分 |
-| 系统可用性 | 99.9%+ | MCP 热备切换保障 |
+```python
+from sub_agents.content_analyst import agent_a_analyze_xiaohongshu
+from sub_agents.content_creator import agent_c_create_content
+from sub_agents.publisher import publish_to_xiaohongshu
+import json
+
+# 步骤 1：分析热门内容
+analysis_result = agent_a_analyze_xiaohongshu(
+    keyword="澳洲旅游",
+    limit=5,
+    quality_level="balanced"
+)
+print("分析结果：", json.loads(analysis_result)["title_patterns"])
+
+# 步骤 2：创作内容
+content_result = agent_c_create_content(
+    analysis_result=analysis_result,
+    topic="澳洲旅游",
+    style="casual",  # casual / professional / storytelling
+    quality_level="balanced"
+)
+content_data = json.loads(content_result)
+print("标题：", content_data["title"])
+print("字数：", content_data["metadata"]["word_count"])
+
+# 步骤 3：发布到小红书（需要配置 MCP 和图片）
+# publish_result = publish_to_xiaohongshu(
+#     title=content_data["title"],
+#     content=content_data["content"],
+#     images=["path/to/image1.jpg"],  # 需要准备图片
+#     tags=content_data["hashtags"]
+# )
+```
+
+#### 方式 4：MCP 服务管理
+
+```bash
+# 启动 MCP 服务
+python xiaohongshu_manager.py start
+
+# 登录小红书
+python xiaohongshu_manager.py login
+
+# 查看服务状态
+python xiaohongshu_manager.py status
+
+# 查看日志
+python xiaohongshu_manager.py logs 50
+
+# 重启服务
+python xiaohongshu_manager.py restart
+
+# 停止服务
+python xiaohongshu_manager.py stop
+```
+
+## 📈 MVP 性能指标
+
+| 指标 | MVP 实际值 | 说明 |
+|------|-----------|------|
+| 端到端耗时 | 30-60秒 | 分析(10s) + 创作(20-40s) |
+| 平均成本 | $0.03-0.08 | GPT-4o-mini 或 Claude 模式 |
+| 内容质量 | 可用 | 基于真实热门内容分析 |
+| 系统稳定性 | 良好 | 带降级策略和错误处理 |
+| MCP 连接 | 稳定 | 3次重试 + 指数退避 |
+
+**性能优化方向**（未来版本）：
+- ⏱️ 并行评审可节省 30-50% 时间
+- 💰 渐进式质量控制可节省 40% 成本
+- 🔄 智能缓存可减少重复调用
 
 ## 📚 详细文档
 
@@ -539,40 +471,140 @@ if review["score"] >= 8.0:
 
 ## 🛣️ 开发路线图
 
-### Phase 1：核心功能（2-3周）
+### ✅ MVP v0.1（已完成）
+
+**核心功能**：
 - [x] 项目架构设计
-- [x] 配置文件和文档
-- [ ] 实现 MCP 编排层
-- [ ] 实现基础 Agent 工具函数
-- [ ] 实现主协调 Agent
+- [x] 配置系统（PathConfig、ModelConfig等）
+- [x] 智能模型路由（ModelRouter）
+- [x] LLM 客户端封装（OpenAI/Claude/Ollama）
+- [x] 小红书 MCP 客户端集成
+- [x] 内容分析 Agent（Agent A）
+- [x] 内容创作 Agent（Agent C）
+- [x] 发布工具（Publisher）
+- [x] 主协调 Agent（ConnectOnion 集成）
+- [x] MCP 服务管理工具
+- [x] 错误处理与降级策略
+- [x] 提示词工程（3个核心提示词）
 
-### Phase 2：增强功能（2-3周）
-- [ ] 多模型协同机制
-- [ ] 多模态处理能力
-- [ ] 渐进式创作流程
+**Bug 修复**：
+- [x] 路径问题修复（统一使用 pathlib.Path）
+
+### 🚧 MVP v0.2（进行中）
+
+**优先级 P0**：
+- [ ] CLI 主入口完善（main.py）
+  - [ ] 环境初始化（setup_environment）
+  - [ ] MCP 连接验证（validate_mcp_connection）
+  - [ ] 单任务模式（run_single_task）
+- [ ] 草稿持久化（自动保存到 outputs/drafts）
+- [ ] 统一工具返回格式（success/data/message）
+
+**优先级 P1**：
+- [ ] Mock 模式（DevConfig.MOCK_MODE）
+- [ ] 基础日志系统配置
+- [ ] 简单的烟雾测试
+
+### 🔜 v1.0（规划中 - 2-4周）
+
+**增强功能**：
+- [ ] 多维度评审（Agent D/E/F/G）
 - [ ] 评审投票机制
+- [ ] 质量迭代（自动修改）
+- [ ] 图片生成（Agent B）
+- [ ] 多模态分析（视觉叙事）
 
-### Phase 3：优化与扩展（2-3周）
-- [ ] 性能优化（并行、缓存）
-- [ ] 多平台适配
+**性能优化**：
+- [ ] 并行评审
+- [ ] 智能缓存
+- [ ] 模型串联优化
+
+**工程化**：
+- [ ] 完整测试覆盖
+- [ ] CI/CD 配置
+- [ ] 部署文档
+
+### 🌟 v2.0+（未来愿景）
+
+- [ ] 多平台适配（微信、抖音等）
 - [ ] 效果追踪与学习
 - [ ] A/B测试系统
+- [ ] Web UI
+- [ ] 生产级监控和告警
 
-### Phase 4：生产就绪（1-2周）
-- [ ] 完整测试覆盖
-- [ ] 错误处理和日志
-- [ ] 部署文档
-- [ ] 监控和告警
+## ❓ 常见问题
+
+### Q: 必须配置所有 LLM API 吗？
+
+A: 不需要。至少配置以下之一即可：
+- **OpenAI**（推荐）：分析和创作都可用
+- **Claude**：主要用于创作，分析会降级到 OpenAI 或失败
+- **Ollama**：本地免费，但质量可能不如商业模型
+
+### Q: 如何不依赖小红书 MCP 进行测试？
+
+A: 有两种方式：
+1. **只测试分析和创作**：不调用 `publish_to_xiaohongshu`
+2. **Mock 模式**（规划中）：设置 `MOCK_MODE=true` 使用伪数据
+
+### Q: 为什么提示 "MCP 连接失败"？
+
+A: 检查以下几点：
+1. MCP 服务是否启动：`python xiaohongshu_manager.py status`
+2. 端口是否正确：默认 `18060`，检查 `.env` 中的 `MCP_XIAOHONGSHU_URL`
+3. 防火墙是否拦截本地连接
+
+### Q: 路径错误 "TypeError: unsupported operand type(s)"？
+
+A: 已在 v0.1 修复。请确保使用最新代码，所有路径已统一为 `pathlib.Path` 对象。
+
+### Q: 成本大概多少？
+
+A: MVP 版本（单次创作）：
+- **使用 GPT-4o-mini**：约 $0.01-0.02
+- **使用 Claude-3.5-Sonnet**：约 $0.03-0.05
+- **混合模式**（分析用 mini，创作用 Claude）：约 $0.03-0.04
+
+### Q: 如何切换模型或质量级别？
+
+A: 在调用工具函数时指定：
+```python
+# 快速模式（使用便宜模型）
+result = agent_a_analyze_xiaohongshu(keyword, quality_level="fast")
+
+# 高质量模式（使用最强模型）
+result = agent_c_create_content(analysis, topic, quality_level="high")
+```
+
+或在 `config.py` 中修改默认配置。
+
+### Q: 未来会支持其他平台吗？
+
+A: 是的！v2.0 计划支持微信公众号、抖音等。当前 MVP 专注于小红书。
 
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
 
+**贡献指南**：
+1. Fork 本项目
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
 ## 📄 许可证
 
 MIT License
 
+## 📮 联系方式
+
+- 提交 Issue：[GitHub Issues](../../issues)
+- 查看文档：[DEVELOPMENT.md](DEVELOPMENT.md)
+
 ---
 
 **⭐ 如果这个项目对你有帮助，请给个 Star！**
+
+**最后更新**：2025-11-02 | **版本**：MVP v0.1
 

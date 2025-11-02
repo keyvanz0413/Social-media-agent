@@ -378,23 +378,25 @@ class AgentConfig:
 class PathConfig:
     """文件路径配置"""
     
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    from pathlib import Path as _Path
+    
+    BASE_DIR = _Path(__file__).parent.absolute()
     
     # 输出目录
-    OUTPUTS_DIR = os.path.join(BASE_DIR, "outputs")
-    IMAGES_DIR = os.path.join(OUTPUTS_DIR, "images")
-    DRAFTS_DIR = os.path.join(OUTPUTS_DIR, "drafts")
-    LOGS_DIR = os.path.join(OUTPUTS_DIR, "logs")
+    OUTPUTS_DIR = BASE_DIR / "outputs"
+    IMAGES_DIR = OUTPUTS_DIR / "images"
+    DRAFTS_DIR = OUTPUTS_DIR / "drafts"
+    LOGS_DIR = OUTPUTS_DIR / "logs"
     
     # 提示词目录
-    PROMPTS_DIR = os.path.join(BASE_DIR, "prompts")
+    PROMPTS_DIR = BASE_DIR / "prompts"
     
     # 确保目录存在
     @classmethod
     def ensure_dirs(cls):
         """确保所有输出目录存在"""
         for dir_path in [cls.IMAGES_DIR, cls.DRAFTS_DIR, cls.LOGS_DIR]:
-            os.makedirs(dir_path, exist_ok=True)
+            dir_path.mkdir(parents=True, exist_ok=True)
 
 
 # ========== 日志配置 ==========
@@ -408,7 +410,7 @@ class LogConfig:
     
     # 日志文件
     FILE_ENABLED = True
-    FILE_PATH = os.path.join(PathConfig.LOGS_DIR, "agent.log")
+    FILE_PATH = PathConfig.LOGS_DIR / "agent.log"
     FILE_MAX_BYTES = 10 * 1024 * 1024  # 10MB
     FILE_BACKUP_COUNT = 5
     
@@ -457,7 +459,7 @@ class DevConfig:
     
     # 测试数据
     TEST_KEYWORD = "澳洲旅游"
-    TEST_OUTPUT_DIR = os.path.join(PathConfig.BASE_DIR, "test_outputs")
+    TEST_OUTPUT_DIR = PathConfig.BASE_DIR / "test_outputs"
 
 
 # ========== 导出配置 ==========
