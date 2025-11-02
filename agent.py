@@ -18,6 +18,11 @@ from tools.content_creator import agent_c_create_content
 from tools.image_generator import generate_images_for_content, generate_images_from_draft
 from tools.publisher import publish_to_xiaohongshu
 
+# 导入评审函数
+from agents.reviewers.engagement_reviewer import review_engagement
+from agents.reviewers.quality_reviewer import review_quality
+from tools.review_tools_v1 import review_compliance
+
 # 导入配置
 from config import AgentConfig, PathConfig, ModelConfig
 
@@ -47,10 +52,18 @@ def create_coordinator_agent():
     
     # 2. 注册所有工具函数
     tools = [
+        # 内容创作工具
         agent_a_analyze_xiaohongshu,
         agent_c_create_content,
         generate_images_for_content,
         generate_images_from_draft,
+        
+        # 评审工具
+        review_engagement,      # Agent 评审：互动潜力
+        review_quality,         # Agent 评审：内容质量
+        review_compliance,      # 函数评审：合规性
+        
+        # 发布工具
         publish_to_xiaohongshu
     ]
     

@@ -15,7 +15,7 @@ from datetime import datetime
 
 from utils.llm_client import LLMClient, LLMError
 from utils.model_router import ModelRouter, TaskType, QualityLevel
-from utils.response_utils import success_response, error_response
+from utils.response_utils import create_success_response, create_error_response
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def review_content(
         
         # 验证输入
         if not content_data.get("title") or not content_data.get("content"):
-            return error_response("缺少必需字段：title 和 content")
+            return create_error_response("缺少必需字段：title 和 content")
         
         # 1. 并行调用三个评审函数（可以进一步优化为真正的并行）
         engagement_result = review_engagement(content_data, quality_level)
@@ -80,7 +80,7 @@ def review_content(
             if not compliance['success']:
                 failed_reviews.append("合规性评审")
             
-            return error_response(f"部分评审失败: {', '.join(failed_reviews)}")
+            return create_error_response(f"部分评审失败: {', '.join(failed_reviews)}")
         
         # 3. 提取评分
         engagement_score = engagement['data']['score']
@@ -129,14 +129,14 @@ def review_content(
         }
         
         logger.info(f"评审完成: 总分 {overall_score}, 通过: {passed}")
-        return success_response(
+        return create_success_response(
             data=result,
             message=f"评审完成：总分 {overall_score}/10，{'通过' if passed else '不通过'}"
         )
         
     except Exception as e:
         logger.error(f"评审过程出错: {str(e)}", exc_info=True)
-        return error_response(f"评审失败: {str(e)}")
+        return create_error_response(f"评审失败: {str(e)}")
 
 
 def review_engagement(
@@ -233,7 +233,7 @@ def review_engagement(
         review_data['score'] = max(0, min(10, review_data['score']))
         
         logger.info(f"互动潜力评审完成: {review_data['score']}/10")
-        return success_response(
+        return create_success_response(
             data=review_data,
             message=f"互动潜力评分: {review_data['score']}/10"
         )
@@ -242,7 +242,7 @@ def review_engagement(
         logger.error(f"LLM 调用失败: {str(e)}")
         # 降级：返回基础评分
         fallback_score = _calculate_engagement_score_fallback(content_data)
-        return success_response(
+        return create_success_response(
             data={
                 "score": fallback_score,
                 "strengths": ["使用基础规则评分"],
@@ -254,7 +254,7 @@ def review_engagement(
         
     except Exception as e:
         logger.error(f"互动潜力评审失败: {str(e)}", exc_info=True)
-        return error_response(f"互动潜力评审失败: {str(e)}")
+        return create_error_response(f"互动潜力评审失败: {str(e)}")
 
 
 def review_quality(
@@ -336,7 +336,7 @@ def review_quality(
         review_data.setdefault('suggestions', [])
         
         logger.info(f"内容质量评审完成: {review_data['score']}/10")
-        return success_response(
+        return create_success_response(
             data=review_data,
             message=f"内容质量评分: {review_data['score']}/10"
         )
@@ -345,7 +345,7 @@ def review_quality(
         logger.error(f"内容质量评审失败: {str(e)}", exc_info=True)
         # 降级
         fallback_score = 7.0  # 默认中等分数
-        return success_response(
+        return create_success_response(
             data={
                 "score": fallback_score,
                 "strengths": [],
@@ -421,14 +421,14 @@ def review_compliance(
         }
         
         logger.info(f"合规性评审完成: {score}/10, 风险等级: {risk_level}")
-        return success_response(
+        return create_success_response(
             data=result_data,
             message=f"合规性评分: {score}/10, 风险等级: {risk_level}"
         )
         
     except Exception as e:
         logger.error(f"合规性评审失败: {str(e)}", exc_info=True)
-        return error_response(f"合规性评审失败: {str(e)}")
+        return create_error_response(f"合规性评审失败: {str(e)}")
 
 
 # ========== 辅助函数 ==========
@@ -554,7 +554,7 @@ def batch_review(
                 "review": review_data
             })
         
-        return success_response(
+        return create_success_response(
             data={
                 "total": len(content_list),
                 "results": results
@@ -564,5 +564,5 @@ def batch_review(
         
     except Exception as e:
         logger.error(f"批量评审失败: {str(e)}", exc_info=True)
-        return error_response(f"批量评审失败: {str(e)}")
+        return create_error_response(f"批量评审失败: {str(e)}")
 

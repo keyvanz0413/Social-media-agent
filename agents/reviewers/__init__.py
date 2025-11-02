@@ -8,13 +8,28 @@ Reviewer Agents
 - 可以多轮迭代评估，而非简单打分
 
 评审员：
-- engagement_reviewer: 互动潜力评审（点赞、收藏、评论潜力）
-- quality_reviewer: 内容质量评审（语法、逻辑、原创性）
-- compliance_reviewer: 合规性评审（敏感词、广告法、平台规则）
+- engagement_reviewer: 互动潜力评审（点赞、收藏、评论潜力）✅
+- quality_reviewer: 内容质量评审（语法、逻辑、原创性）✅
+- compliance_reviewer: 合规性评审（敏感词、广告法、平台规则）⏳
 """
 
-# TODO: 导入评审 Agents
-# from .engagement_reviewer import create_engagement_reviewer
-# from .quality_reviewer import create_quality_reviewer
-# from .compliance_reviewer import create_compliance_reviewer
+from .engagement_reviewer import (
+    create_engagement_reviewer_agent,
+    review_engagement
+)
+
+from .quality_reviewer import (
+    create_quality_reviewer_agent,
+    review_quality
+)
+
+# TODO: compliance_reviewer 待实现
+# from .compliance_reviewer import create_compliance_reviewer_agent
+
+__all__ = [
+    "create_engagement_reviewer_agent",
+    "review_engagement",
+    "create_quality_reviewer_agent",
+    "review_quality"
+]
 

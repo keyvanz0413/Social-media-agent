@@ -9,6 +9,8 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from utils.mcp_client import XiaohongshuMCPClient, XiaohongshuMCPError
+from utils.cached_mcp_client import get_cached_mcp_client
+from utils.cache_manager import get_cache_manager, cache_key
 from utils.llm_client import LLMClient, LLMError
 from utils.model_router import ModelRouter, TaskType, QualityLevel
 from config import AgentConfig, PathConfig, BusinessConfig, MCPConfig
@@ -110,13 +112,14 @@ def agent_a_analyze_xiaohongshu(
         }, ensure_ascii=False)
 
 
-def _collect_notes(keyword: str, limit: int) -> List[Dict[str, Any]]:
+def _collect_notes(keyword: str, limit: int, use_cache: bool = True) -> List[Dict[str, Any]]:
     """
-    收集小红书笔记数据
+    收集小红书笔记数据（带缓存支持）
     
     Args:
         keyword: 搜索关键词
         limit: 笔记数量
+        use_cache: 是否使用缓存，默认True
         
     Returns:
         笔记列表
@@ -124,7 +127,13 @@ def _collect_notes(keyword: str, limit: int) -> List[Dict[str, Any]]:
     mcp_url = MCPConfig.SERVERS["xiaohongshu"]["url"]
     timeout = MCPConfig.SERVERS["xiaohongshu"]["timeout"]
     
-    client = XiaohongshuMCPClient(base_url=mcp_url, timeout=timeout)
+    # 使用带缓存的客户端
+    if use_cache:
+        client = get_cached_mcp_client(base_url=mcp_url, cache_ttl=1800)  # 30分钟缓存
+        logger.debug("使用带缓存的 MCP 客户端")
+    else:
+        client = XiaohongshuMCPClient(base_url=mcp_url, timeout=timeout)
+        logger.debug("使用标准 MCP 客户端（无缓存）")
     
     try:
         # 搜索笔记（使用默认排序）

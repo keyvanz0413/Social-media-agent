@@ -311,6 +311,267 @@ def get_engagement_stats(topic: str) -> str:
 
 # ========== Quality Reviewer 工具 ==========
 
+def check_readability(content: str) -> str:
+    """
+    检查可读性
+    
+    评估内容的阅读体验：句子长度、专业术语、排版等。
+    
+    Args:
+        content: 帖子内容
+        
+    Returns:
+        JSON 格式的可读性分析
+    """
+    try:
+        # 分析句子长度
+        sentences = content.replace('！', '。').replace('？', '。').split('。')
+        sentences = [s.strip() for s in sentences if s.strip()]
+        
+        avg_sentence_length = sum(len(s) for s in sentences) / len(sentences) if sentences else 0
+        long_sentences = sum(1 for s in sentences if len(s) > 50)
+        
+        # 检查是否有段落
+        paragraphs = content.split('\n')
+        paragraphs = [p.strip() for p in paragraphs if p.strip()]
+        
+        # 检查专业术语（简化版）
+        # 实际应该有专业术语词典
+        has_complex_words = any(
+            word in content 
+            for word in ['因此', '然而', '鉴于', '综上所述']
+        )
+        
+        # 检查排版元素
+        has_emoji = any(ord(c) > 127462 for c in content)
+        has_line_breaks = '\n' in content.strip()
+        has_bullet_points = '•' in content or '·' in content or '-' in content
+        
+        # 计算可读性评分
+        readability_score = 10
+        
+        if avg_sentence_length > 40:
+            readability_score -= 2
+        elif avg_sentence_length > 30:
+            readability_score -= 1
+            
+        if long_sentences > len(sentences) * 0.3:  # 超过30%的句子过长
+            readability_score -= 1
+            
+        if not has_line_breaks and len(content) > 200:
+            readability_score -= 2
+            
+        if not has_emoji:
+            readability_score -= 0.5
+            
+        # 生成建议
+        suggestions = []
+        if avg_sentence_length > 35:
+            suggestions.append("句子平均长度较长，建议拆分为短句")
+        if not has_line_breaks:
+            suggestions.append("建议使用分行提升可读性")
+        if not has_emoji and not has_bullet_points:
+            suggestions.append("适当添加emoji或符号点缀")
+        if long_sentences > 3:
+            suggestions.append(f"有 {long_sentences} 个句子过长，建议简化")
+            
+        return create_success_response(
+            data={
+                "score": round(readability_score, 1),
+                "metrics": {
+                    "avg_sentence_length": round(avg_sentence_length, 1),
+                    "long_sentences_count": long_sentences,
+                    "paragraph_count": len(paragraphs),
+                    "has_emoji": has_emoji,
+                    "has_formatting": has_line_breaks or has_bullet_points
+                },
+                "reading_level": "易读" if readability_score >= 8 else "一般" if readability_score >= 6 else "较难",
+                "suggestions": suggestions
+            },
+            message=f"可读性评分: {readability_score:.1f}/10"
+        )
+        
+    except Exception as e:
+        logger.error(f"可读性检查失败: {str(e)}", exc_info=True)
+        return create_error_response(f"检查失败: {str(e)}")
+
+
+def analyze_content_depth(content: str, topic: str = "") -> str:
+    """
+    分析内容深度
+    
+    评估内容的信息量、独特性和价值。
+    
+    Args:
+        content: 帖子内容
+        topic: 话题（用于判断相关性）
+        
+    Returns:
+        JSON 格式的深度分析
+    """
+    try:
+        # 1. 信息密度
+        word_count = len(content)
+        
+        # 2. 检查是否有具体信息
+        has_numbers = bool(__import__('re').search(r'\d+', content))
+        has_specific_names = bool(__import__('re').search(r'[A-Z][a-z]+|[\u4e00-\u9fa5]{2,}(?:店|馆|中心|公园|酒店)', content))
+        
+        # 3. 检查是否有个人见解
+        opinion_markers = ['我觉得', '我认为', '在我看来', '个人', '推荐', '建议']
+        has_personal_view = any(marker in content for marker in opinion_markers)
+        
+        # 4. 检查是否有案例或例子
+        example_markers = ['比如', '例如', '举个例子', '以我', '我的']
+        has_examples = any(marker in content for marker in example_markers)
+        
+        # 5. 检查是否有实用建议
+        practical_markers = ['方法', '步骤', '技巧', '攻略', '注意', '记得', '千万']
+        has_practical_info = any(marker in content for marker in practical_markers)
+        
+        # 计算深度评分
+        depth_score = 5  # 基础分
+        
+        if word_count >= 500:
+            depth_score += 2
+        elif word_count >= 300:
+            depth_score += 1
+        elif word_count < 150:
+            depth_score -= 1
+            
+        if has_numbers:
+            depth_score += 0.5
+        if has_specific_names:
+            depth_score += 0.5
+        if has_personal_view:
+            depth_score += 1
+        if has_examples:
+            depth_score += 0.5
+        if has_practical_info:
+            depth_score += 0.5
+            
+        depth_score = min(10, depth_score)  # 最高10分
+        
+        # 生成建议
+        suggestions = []
+        if word_count < 200:
+            suggestions.append("内容较短，建议扩充到300字以上")
+        if not has_numbers:
+            suggestions.append("添加具体数字增强可信度")
+        if not has_personal_view:
+            suggestions.append("增加个人见解和感受")
+        if not has_examples:
+            suggestions.append("加入具体案例或例子")
+        if not has_practical_info:
+            suggestions.append("提供更多实用建议")
+            
+        return create_success_response(
+            data={
+                "score": round(depth_score, 1),
+                "metrics": {
+                    "word_count": word_count,
+                    "has_numbers": has_numbers,
+                    "has_specific_info": has_specific_names,
+                    "has_personal_view": has_personal_view,
+                    "has_examples": has_examples,
+                    "has_practical_info": has_practical_info
+                },
+                "depth_level": "深入" if depth_score >= 8 else "中等" if depth_score >= 6 else "浅显",
+                "suggestions": suggestions
+            },
+            message=f"内容深度评分: {depth_score:.1f}/10"
+        )
+        
+    except Exception as e:
+        logger.error(f"内容深度分析失败: {str(e)}", exc_info=True)
+        return create_error_response(f"分析失败: {str(e)}")
+
+
+def check_information_accuracy(content: str, topic: str = "") -> str:
+    """
+    检查信息准确性
+    
+    检测明显的事实错误、不合理的数据、误导性表述。
+    
+    Args:
+        content: 帖子内容
+        topic: 话题（用于上下文判断）
+        
+    Returns:
+        JSON 格式的准确性检查结果
+    """
+    try:
+        issues = []
+        
+        # 1. 检查极限词（可能违反广告法）
+        extreme_words = ['最好', '第一', '最大', '最强', '顶级', '极致', '完美']
+        found_extreme = [w for w in extreme_words if w in content]
+        if found_extreme:
+            issues.append({
+                "type": "极限词",
+                "issue": f"使用了极限词: {', '.join(found_extreme)}",
+                "severity": "medium",
+                "suggestion": "替换为相对表述，如'非常好'、'很推荐'"
+            })
+        
+        # 2. 检查是否有明显夸张的数字
+        import re
+        numbers = re.findall(r'\d+', content)
+        for num in numbers:
+            if int(num) > 10000:  # 简单检查
+                # 这里实际应该根据上下文判断
+                pass
+        
+        # 3. 检查是否有绝对化表述
+        absolute_words = ['一定', '必须', '绝对', '百分之百', '保证']
+        found_absolute = [w for w in absolute_words if w in content]
+        if found_absolute:
+            issues.append({
+                "type": "绝对化表述",
+                "issue": f"使用了绝对化表述: {', '.join(found_absolute)}",
+                "severity": "low",
+                "suggestion": "使用更温和的表述，如'建议'、'推荐'"
+            })
+        
+        # 4. 检查是否有未经证实的宣称
+        claim_words = ['包治', '根治', '彻底', '永久', '秘方']
+        found_claims = [w for w in claim_words if w in content]
+        if found_claims:
+            issues.append({
+                "type": "夸大宣称",
+                "issue": f"可能存在夸大宣称: {', '.join(found_claims)}",
+                "severity": "high",
+                "suggestion": "删除或修改为客观表述"
+            })
+        
+        # 计算准确性评分
+        accuracy_score = 10
+        for issue in issues:
+            if issue['severity'] == 'high':
+                accuracy_score -= 3
+            elif issue['severity'] == 'medium':
+                accuracy_score -= 1.5
+            elif issue['severity'] == 'low':
+                accuracy_score -= 0.5
+        
+        accuracy_score = max(0, accuracy_score)
+        
+        return create_success_response(
+            data={
+                "score": round(accuracy_score, 1),
+                "issues": issues,
+                "total_issues": len(issues),
+                "risk_level": "高" if accuracy_score < 6 else "中" if accuracy_score < 8 else "低",
+                "passed": len([i for i in issues if i['severity'] == 'high']) == 0
+            },
+            message=f"发现 {len(issues)} 个准确性问题" if issues else "未发现明显问题"
+        )
+        
+    except Exception as e:
+        logger.error(f"准确性检查失败: {str(e)}", exc_info=True)
+        return create_error_response(f"检查失败: {str(e)}")
+
+
 def check_grammar(text: str) -> str:
     """
     语法检查（简化版）
@@ -538,6 +799,9 @@ __all__ = [
     "get_engagement_stats",
     
     # Quality Reviewer 工具
+    "check_readability",
+    "analyze_content_depth",
+    "check_information_accuracy",
     "check_grammar",
     "analyze_content_structure",
     
