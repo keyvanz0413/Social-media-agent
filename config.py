@@ -252,7 +252,7 @@ class BusinessConfig:
     # 内容分析配置
     CONTENT_ANALYSIS = {
         "top_n_posts": 5,  # 分析前 N 篇热门帖子
-        "min_likes": 5000,  # 最低点赞量
+        "min_likes": 0,  # 最低点赞量（0=不过滤）
         "max_posts_age_days": 30,  # 最近 N 天的帖子
         "analysis_dimensions": [
             "title_style",

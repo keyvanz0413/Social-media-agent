@@ -127,13 +127,10 @@ def _collect_notes(keyword: str, limit: int) -> List[Dict[str, Any]]:
     client = XiaohongshuMCPClient(base_url=mcp_url, timeout=timeout)
     
     try:
-        # 优先按最热排序获取
+        # 搜索笔记（使用默认排序）
         result = client.search_notes(
             keyword=keyword,
-            limit=limit,
-            sort_by="popularity_descending",  # 按最热排序
-            note_type="",  # 全部类型
-            publish_time=""  # 全部时间
+            limit=limit
         )
         
         feeds = result.get("feeds", [])
@@ -159,29 +156,56 @@ def _clean_and_validate_notes(notes: List[Dict[str, Any]]) -> List[Dict[str, Any
     
     for note in notes:
         try:
+            # 兼容两种数据结构：旧的直接结构和新的嵌套noteCard结构
+            note_card = note.get("noteCard", {})
+            if note_card:
+                # 新结构：数据在noteCard中
+                title = note_card.get("displayTitle", "")
+                content = note_card.get("desc", "")  # 如果有desc字段
+                interact_info = note_card.get("interactInfo", {})
+                note_id = note.get("id", "")
+                note_type = note_card.get("type", "normal")
+            else:
+                # 旧结构：数据在顶层
+                title = note.get("title", "")
+                content = note.get("desc", "")
+                interact_info = note.get("interact_info", {})
+                note_id = note.get("note_id", "")
+                note_type = note.get("type", "normal")
+            
             # 验证必需字段
-            if not note.get("title") or not note.get("desc"):
-                logger.debug("跳过无效笔记：缺少必需字段")
+            if not title:
+                logger.debug("跳过无效笔记：缺少标题")
                 continue
             
-            # 获取互动数据
-            interact_info = note.get("interact_info", {})
-            likes = interact_info.get("liked_count", 0)
+            # 获取互动数据（兼容不同字段名）
+            likes = interact_info.get("likedCount", interact_info.get("liked_count", 0))
+            # 处理字符串数字
+            if isinstance(likes, str):
+                likes = int(likes) if likes.isdigit() else 0
             
             # 过滤低互动内容（如果设置了阈值）
             if min_likes > 0 and likes < min_likes:
                 logger.debug(f"跳过低互动笔记：{likes} < {min_likes}")
                 continue
             
+            # 获取收藏和评论数
+            favorites = interact_info.get("collectedCount", interact_info.get("collected_count", 0))
+            comments = interact_info.get("commentCount", interact_info.get("comment_count", 0))
+            if isinstance(favorites, str):
+                favorites = int(favorites) if favorites.isdigit() else 0
+            if isinstance(comments, str):
+                comments = int(comments) if comments.isdigit() else 0
+            
             # 构建标准化数据
             cleaned_note = {
-                "title": str(note.get("title", "")).strip(),
-                "content": str(note.get("desc", "")).strip(),
+                "title": str(title).strip(),
+                "content": str(content).strip() if content else f"笔记内容：{title}",  # 如果没有content，使用标题
                 "likes": likes,
-                "favorites": interact_info.get("collected_count", 0),
-                "comments": interact_info.get("comment_count", 0),
-                "note_id": note.get("note_id", ""),
-                "type": note.get("type", "normal"),  # normal/video
+                "favorites": favorites,
+                "comments": comments,
+                "note_id": note_id,
+                "type": note_type,
                 "time": note.get("time", "")
             }
             

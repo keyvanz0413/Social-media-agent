@@ -43,10 +43,11 @@ class XiaohongshuMCPClient:
         # 配置带重试机制的session
         self.session = requests.Session()
         retry_strategy = Retry(
-            total=max_retries,
-            backoff_factor=1,
-            status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["GET", "POST"]
+            total=2,  # 减少重试次数，避免长时间等待
+            backoff_factor=0.5,  # 减少退避时间
+            status_forcelist=[502, 503, 504],  # 移除 429 和 500，这些通常不应该重试
+            allowed_methods=["GET", "POST"],
+            raise_on_status=False  # 不在重试失败时抛出异常，由我们自己处理
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)
@@ -182,7 +183,7 @@ class XiaohongshuMCPClient:
         self,
         keyword: str,
         limit: int = 10,
-        sort_by: str = "general",
+        sort_by: str = "",
         note_type: str = "",
         publish_time: str = ""
     ) -> Dict[str, Any]:
@@ -192,9 +193,9 @@ class XiaohongshuMCPClient:
         Args:
             keyword: 搜索关键词
             limit: 返回数量（默认10）
-            sort_by: 排序方式（general=综合, popularity_descending=最热, time_descending=最新）
-            note_type: 笔记类型（空=全部, video=视频, normal=图文）
-            publish_time: 发布时间（空=全部, 1day=一天内, 1week=一周内, 1month=一月内）
+            sort_by: 排序方式（空=默认, "综合", "最新", "最多点赞", "最多评论", "最多收藏"）
+            note_type: 笔记类型（空=全部, "视频", "图文"）
+            publish_time: 发布时间（空=全部, "一天内", "一周内", "半年内"）
             
         Returns:
             包含笔记列表的字典：
@@ -216,17 +217,29 @@ class XiaohongshuMCPClient:
         
         logger.info(f"搜索笔记: {keyword}, 数量: {limit}")
         
+        # 构建请求数据（API只接受 keyword 和 filters，limit由服务端控制）
         data = {
-            "keyword": keyword,
-            "limit": limit,
-            "filters": {
-                "sort_by": sort_by,
-                "note_type": note_type,
-                "publish_time": publish_time
-            }
+            "keyword": keyword
         }
         
-        return self._make_request("POST", "/feeds/search", data=data, timeout=15)
+        # 只有在需要筛选时才添加 filters 字段
+        if sort_by or note_type or publish_time:
+            data["filters"] = {}
+            if sort_by:
+                data["filters"]["sort_by"] = sort_by
+            if note_type:
+                data["filters"]["note_type"] = note_type
+            if publish_time:
+                data["filters"]["publish_time"] = publish_time
+        
+        result = self._make_request("POST", "/feeds/search", data=data, timeout=30)
+        
+        # 限制返回的笔记数量（在客户端做限制）
+        if "feeds" in result and limit > 0:
+            result["feeds"] = result["feeds"][:limit]
+            result["count"] = len(result["feeds"])
+        
+        return result
     
     def get_note_detail(self, note_id: str, xsec_token: str) -> Dict[str, Any]:
         """
