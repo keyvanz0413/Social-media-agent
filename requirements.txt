@@ -1,0 +1,36 @@
+# ========== ConnectOnion Framework ==========
+connectonion>=0.0.4
+
+# ========== AI/LLM Libraries ==========
+openai>=1.0.0
+anthropic>=0.21.0
+python-dotenv>=1.0.0
+
+# ========== HTTP & API ==========
+requests>=2.31.0
+httpx>=0.27.0
+aiohttp>=3.9.0
+
+# ========== Data Processing ==========
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# ========== Image Processing ==========
+Pillow>=10.0.0
+requests>=2.31.0
+
+# ========== Utils ==========
+tenacity>=8.2.0  # 重试机制
+cachetools>=5.3.0  # 缓存
+loguru>=0.7.0  # 高级日志
+
+# ========== Testing (Optional) ==========
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.11.0
+
+# ========== Development (Optional) ==========
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+
