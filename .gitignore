@@ -66,3 +66,7 @@ generated/
 !prompts/*.md
 !docs/*.md
 !README.md
+
+# Documentation and tests
+docs/
+tests/
