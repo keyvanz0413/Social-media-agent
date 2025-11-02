@@ -49,17 +49,140 @@ class ModelConfig:
         }
     }
     
-    # API Keys
+    # API Keys 和 Base URLs
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")  # 可选，用于第三方 API
+    
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
     OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+    
+    # 第三方平台配置示例
+    # 如果使用第三方平台（如 OpenRouter, 硅基流动等），只需配置 OPENAI_API_KEY 和 OPENAI_BASE_URL
+    # 然后在下面的 MODELS 中指定可用的模型名称
+    
+    # 支持的第三方平台示例：
+    THIRD_PARTY_PLATFORMS = {
+        "openrouter": {
+            "base_url": "https://openrouter.ai/api/v1",
+            "models": ["gpt-4o", "claude-3.5-sonnet", "llama-3.1-70b", "deepseek-chat"],
+            "description": "一个 API 访问多个模型"
+        },
+        "siliconflow": {
+            "base_url": "https://api.siliconflow.cn/v1",
+            "models": ["Qwen/Qwen2.5-7B-Instruct", "deepseek-ai/DeepSeek-V2.5", "claude-3-5-sonnet"],
+            "description": "国内高性价比平台"
+        },
+        "groq": {
+            "base_url": "https://api.groq.com/openai/v1",
+            "models": ["llama-3.1-70b-versatile", "mixtral-8x7b-32768"],
+            "description": "超快推理速度"
+        },
+        "deepseek": {
+            "base_url": "https://api.deepseek.com/v1",
+            "models": ["deepseek-chat", "deepseek-coder"],
+            "description": "国产高性价比模型"
+        },
+        "moonshot": {
+            "base_url": "https://api.moonshot.cn/v1",
+            "models": ["moonshot-v1-8k", "moonshot-v1-32k", "moonshot-v1-128k"],
+            "description": "Kimi 模型"
+        }
+    }
     
     # 备用模型（降级策略）
     FALLBACK_MODELS = {
         "gpt-4o": "gpt-4o-mini",
         "claude-3.5-sonnet": "gpt-4o",
-        "qwen2.5-vl": "gpt-4o-vision"
+        "qwen2.5-vl": "gpt-4o-vision",
+        "gpt-4o-mini": None,  # 已经是最便宜的，无法继续降级
     }
+    
+    # 任务类型到模型的映射
+    # 支持三种质量级别：fast（快速）、balanced（平衡）、high（高质量）
+    TASK_MODEL_MAPPING = {
+        "analysis": {
+            "fast": "gpt-4o-mini",
+            "balanced": "gpt-4o",
+            "high": "gpt-4o"
+        },
+        "creation": {
+            "fast": "gpt-4o-mini",
+            "balanced": "claude-3.5-sonnet",
+            "high": "claude-3.5-sonnet"
+        },
+        "review": {
+            "fast": "gpt-4o-mini",
+            "balanced": "gpt-4o-mini",
+            "high": "gpt-4o"
+        },
+        "reasoning": {
+            "fast": "gpt-4o-mini",
+            "balanced": "gpt-4o",
+            "high": "gpt-4o"
+        },
+        "vision": {
+            "fast": "gpt-4o-vision",
+            "balanced": "qwen2.5-vl",
+            "high": "gpt-4o-vision"
+        }
+    }
+    
+    # 模型详细信息（描述、特点、最佳用途）
+    MODEL_INFO = {
+        "gpt-4o": {
+            "provider": "openai",
+            "description": "OpenAI 最新旗舰模型",
+            "strengths": ["深度推理", "复杂问题求解", "策略制定"],
+            "cost_level": "high",
+            "context_window": 128000
+        },
+        "gpt-4o-mini": {
+            "provider": "openai",
+            "description": "GPT-4o 的轻量版本",
+            "strengths": ["快速响应", "成本低", "适合简单任务"],
+            "cost_level": "low",
+            "context_window": 128000
+        },
+        "claude-3.5-sonnet": {
+            "provider": "anthropic",
+            "description": "Claude 最强模型",
+            "strengths": ["创意写作", "长文本生成", "自然对话"],
+            "cost_level": "high",
+            "context_window": 200000
+        },
+        "qwen2.5-vl": {
+            "provider": "custom",
+            "description": "通义千问视觉语言模型",
+            "strengths": ["图片理解", "多模态分析", "OCR"],
+            "cost_level": "medium",
+            "context_window": 32000
+        },
+        "gpt-4o-vision": {
+            "provider": "openai",
+            "description": "GPT-4o 视觉版本",
+            "strengths": ["图片理解", "视觉分析"],
+            "cost_level": "high",
+            "context_window": 128000
+        }
+    }
+    
+    @classmethod
+    def get_api_config(cls) -> Dict[str, Any]:
+        """
+        获取 API 配置，用于初始化 Agent
+        
+        Returns:
+            包含 API Key 和 Base URL 的字典
+        """
+        config = {}
+        
+        if cls.OPENAI_API_KEY:
+            config['api_key'] = cls.OPENAI_API_KEY
+        
+        if cls.OPENAI_BASE_URL:
+            config['base_url'] = cls.OPENAI_BASE_URL
+        
+        return config
 
 
 # ========== MCP 服务器配置 ==========
