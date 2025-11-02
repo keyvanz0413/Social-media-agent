@@ -140,6 +140,12 @@ class XiaohongshuMCPClient:
             >>> if client.check_health():
             ...     print("服务正常")
         """
+        # Mock 模式检查
+        from config import DevConfig
+        if DevConfig.MOCK_MODE:
+            logger.info("🎭 Mock 模式：模拟 MCP 健康检查")
+            return True
+        
         try:
             # 尝试检查登录状态，如果能成功请求则说明服务正常
             self.check_login_status()
@@ -162,6 +168,13 @@ class XiaohongshuMCPClient:
             >>> status = client.check_login_status()
             >>> print(status['is_logged_in'])
         """
+        # Mock 模式检查
+        from config import DevConfig
+        if DevConfig.MOCK_MODE:
+            logger.info("🎭 Mock 模式：模拟登录状态检查")
+            from utils.mock_data import MockDataGenerator
+            return MockDataGenerator.mock_login_status(logged_in=True)
+        
         logger.info("检查登录状态")
         return self._make_request("GET", "/login/status")
     
@@ -194,6 +207,13 @@ class XiaohongshuMCPClient:
             >>> for feed in result['feeds']:
             >>>     print(feed['title'])
         """
+        # Mock 模式检查
+        from config import DevConfig
+        if DevConfig.MOCK_MODE:
+            logger.info(f"🎭 Mock 模式：模拟搜索笔记 ({keyword})")
+            from utils.mock_data import MockDataGenerator
+            return MockDataGenerator.mock_xiaohongshu_search(keyword, limit)
+        
         logger.info(f"搜索笔记: {keyword}, 数量: {limit}")
         
         data = {
@@ -289,6 +309,13 @@ class XiaohongshuMCPClient:
             >>>     tags=["春天", "旅游"]
             >>> )
         """
+        # Mock 模式检查
+        from config import DevConfig
+        if DevConfig.MOCK_MODE:
+            logger.info(f"🎭 Mock 模式：模拟发布笔记 ({title})")
+            from utils.mock_data import MockDataGenerator
+            return MockDataGenerator.mock_publish_result(success=True)
+        
         logger.info(f"发布图文笔记: {title}")
         
         if not title or len(title) > 20:

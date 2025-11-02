@@ -314,12 +314,14 @@ def main():
     
     args = parser.parse_args()
     
-    # 配置日志
-    log_level = logging.DEBUG if DevConfig.DEBUG else logging.INFO
-    logging.basicConfig(
+    # 配置日志系统（使用新的日志管理器）
+    from utils.logger_config import setup_logging
+    log_level = 'DEBUG' if DevConfig.DEBUG else LogConfig.LEVEL
+    setup_logging(
         level=log_level,
-        format=LogConfig.FORMAT,
-        datefmt=LogConfig.DATE_FORMAT
+        console_enabled=LogConfig.CONSOLE_ENABLED,
+        file_enabled=LogConfig.FILE_ENABLED,
+        colorize=LogConfig.CONSOLE_COLORIZE
     )
     
     print("\n" + "=" * 60)

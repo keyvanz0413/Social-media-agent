@@ -2,16 +2,16 @@
 
 基于 ConnectOnion 框架构建的**智能社交媒体内容创作系统**，融合多模型协同、MCP 集成和智能编排。
 
-> 💡 **当前状态**：**MVP v0.2 (P0)** - 核心创作流程已实现，CLI 主入口完善，草稿自动保存。
+> 💡 **当前状态**：**MVP v0.2 (P0+P1 完成)** - 核心创作流程 + Mock模式 + 日志系统 + 自动化测试。
 
 > 🎯 **核心理念**：通过 Multi-Agent 协作和智能模型路由，实现高质量内容的自动化创作。
 
 > ⚡ **最新更新** (2025-11-02)：
-> - ✅ CLI 主入口完善（环境检查、MCP验证、单任务模式）
-> - ✅ 草稿自动保存和管理系统
-> - ✅ 统一的工具返回格式（success/data/message）
-> - ✅ 完整的测试脚本和文档
-> - ✅ 增强的错误处理和故障排除
+> - ✅ **P0**: CLI 主入口、草稿管理、统一响应格式
+> - ✅ **P1**: Mock 模式、日志系统、烟雾测试
+> - 🎭 无需真实 API 即可开发（Mock 模式）
+> - 📋 专业的日志管理（彩色输出 + 文件记录）
+> - 🧪 自动化测试（7 个核心测试，100% 通过）
 
 ## ✨ MVP 核心特性
 
@@ -214,6 +214,10 @@ Social-media-agent/
 │   ├── llm_client.py               # ✅ 统一 LLM 客户端
 │   ├── mcp_client.py               # ✅ 小红书 MCP 客户端
 │   ├── model_router.py             # ✅ 智能模型路由
+│   ├── response_utils.py           # ✅ 统一响应格式（v0.2 P0）
+│   ├── draft_manager.py            # ✅ 草稿管理器（v0.2 P0）
+│   ├── mock_data.py                # ✅ Mock 数据生成（v0.2 P1）
+│   ├── logger_config.py            # ✅ 日志系统配置（v0.2 P1）
 │   └── (其他工具)                  # 🔜 规划中
 │
 ├── prompts/                         # 💭 提示词工程
@@ -228,14 +232,52 @@ Social-media-agent/
 │   └── logs/                       # 运行日志
 │
 └── tests/                           # 🧪 测试套件
-    └── (测试文件)                   # 🔜 规划中
+    ├── __init__.py                 # ✅
+    ├── smoke_test.py               # ✅ 烟雾测试（v0.2 P1）
+    └── (其他测试)                  # 🔜 规划中
 ```
 
 **图例**：✅ 已实现 | ⚠️ 部分实现 | 🔜 规划中
 
 ## 🚀 快速开始
 
-### 环境准备
+### ⚡ 零配置快速体验（Mock 模式）
+
+**无需任何 API Key，5 分钟体验完整系统：**
+
+```bash
+# 1. 克隆项目
+git clone <your-repo-url>
+cd Social-media-agent
+
+# 2. 安装依赖
+pip install -r requirements.txt
+
+# 3. 启用 Mock 模式（无需配置 API Key）
+export MOCK_MODE=true
+
+# 4. 运行烟雾测试
+python tests/smoke_test.py
+# ✅ 7/7 测试通过，系统正常！
+
+# 5. 体验创作功能
+python main.py --skip-mcp-check --mode single --task "创作一篇关于咖啡的帖子"
+# ✅ 草稿已保存，可在 outputs/drafts/ 查看
+```
+
+**🎉 恭喜！你已经成功运行了 Social Media Multi-Agent System！**
+
+Mock 模式特别适合：
+- 🔍 了解系统功能
+- 🧪 开发和调试
+- 📚 学习代码结构
+- 🎭 演示展示
+
+---
+
+### 🔧 生产环境配置
+
+如果要创作真实内容并发布到小红书，需要配置 API：
 
 #### 1. 克隆项目
 ```bash
@@ -482,7 +524,98 @@ print("字数：", content_data["metadata"]["word_count"])
 # )
 ```
 
-#### 方式 4：MCP 服务管理
+#### 方式 4：Mock 模式开发（MVP v0.2 P1 - 新增 🎭）
+
+**无需配置真实 API，立即开始开发：**
+
+```bash
+# 1. 在 .env 文件中启用 Mock 模式
+echo "MOCK_MODE=true" >> .env
+
+# 或通过环境变量
+export MOCK_MODE=true
+
+# 2. 运行系统（所有 API 调用都会被模拟）
+python main.py --skip-mcp-check --mode single --task "创作一篇关于咖啡的帖子"
+
+# 3. 运行烟雾测试（自动启用 Mock 模式）
+python tests/smoke_test.py
+```
+
+**Mock 模式特性：**
+- 🚀 **零配置** - 无需 API Key，立即开始
+- 💰 **零成本** - 不消耗真实 API 额度
+- 🔒 **隐私保护** - 所有数据都是模拟的
+- ⚡ **快速响应** - < 1ms，无网络延迟
+- 🎯 **可预测** - 固定的模拟数据，便于测试
+
+**Mock 模式输出示例：**
+```
+ℹ️  INFO LoggerManager - 🎭 Mock 模式已启用
+🎭 Mock 模式：模拟 LLM 调用 (gpt-4o-mini)
+🎭 Mock 模式：模拟搜索笔记 (咖啡)
+✅ 草稿已保存: 20251102_143052_咖啡
+```
+
+**何时使用 Mock 模式：**
+- ✅ 开发新功能时
+- ✅ 调试代码逻辑时
+- ✅ 运行测试时
+- ✅ 演示系统时
+- ❌ 创作真实内容时（需要关闭）
+
+#### 方式 5：日志系统（MVP v0.2 P1 - 新增 📋）
+
+**专业的日志管理系统，带彩色输出：**
+
+```python
+from utils.logger_config import get_logger, log_execution
+
+# 获取 Logger
+logger = get_logger(__name__)
+
+# 不同级别的日志
+logger.debug("调试信息")    # 🔍 DEBUG
+logger.info("普通信息")     # ℹ️  INFO  
+logger.warning("警告信息")  # ⚠️  WARNING
+logger.error("错误信息")    # ❌ ERROR
+logger.critical("严重错误") # 🔥 CRITICAL
+
+# 使用装饰器自动记录函数执行
+@log_execution()
+def my_function():
+    # 函数执行时间会被自动记录
+    pass
+```
+
+**日志输出示例：**
+```
+ℹ️  INFO LoggerManager - 日志系统已初始化
+ℹ️  INFO LoggerManager - 日志级别: INFO
+ℹ️  INFO LoggerManager - 控制台输出: 启用
+ℹ️  INFO LoggerManager - 文件输出: 启用
+ℹ️  INFO LoggerManager - 日志文件: outputs/logs/agent.log
+```
+
+**日志配置：**
+```python
+from utils.logger_config import setup_logging
+
+setup_logging(
+    level='DEBUG',        # 日志级别
+    console_enabled=True, # 控制台输出
+    file_enabled=True,    # 文件输出
+    colorize=True         # 彩色输出
+)
+```
+
+**日志文件管理：**
+- 自动轮转（10MB per file）
+- 保留 5 个历史文件
+- UTF-8 编码支持
+- 详细的时间戳和模块信息
+
+#### 方式 6：MCP 服务管理
 
 ```bash
 # 启动 MCP 服务
@@ -503,6 +636,52 @@ python xiaohongshu_manager.py restart
 # 停止服务
 python xiaohongshu_manager.py stop
 ```
+
+#### 方式 7：运行测试（MVP v0.2 P1 - 新增 🧪）
+
+**烟雾测试 - 快速验证核心功能：**
+
+```bash
+# 运行烟雾测试（自动启用 Mock 模式）
+python tests/smoke_test.py
+
+# 输出示例：
+# 🧪 开始烟雾测试（Smoke Test）
+# ✅ 通过: 核心模块导入
+# ✅ 通过: 配置系统
+# ✅ 通过: 日志系统
+# ✅ 通过: Mock 数据生成
+# ✅ 通过: 草稿管理器
+# ✅ 通过: 子 Agent 功能
+# ✅ 通过: 统一响应格式
+# 
+# 总计: 7 个测试
+# 通过: 7 个 ✅
+# 失败: 0 个 ❌
+# 成功率: 100.0%
+# 
+# 🎉 所有烟雾测试通过！系统核心功能正常。
+```
+
+**功能测试 - 测试 MVP v0.2 新功能：**
+
+```bash
+# 运行 MVP v0.2 功能测试
+python test_mvp02.py
+
+# 测试内容：
+# - 统一响应格式工具
+# - 草稿管理器
+# - 环境初始化
+# - MCP 连接验证
+```
+
+**测试特性：**
+- ✅ 自动启用 Mock 模式
+- ✅ 不依赖外部 API
+- ✅ 快速执行（< 5 秒）
+- ✅ 详细的测试报告
+- ✅ 自动清理测试数据
 
 ## 📈 MVP 性能指标
 
@@ -546,7 +725,7 @@ python xiaohongshu_manager.py stop
 **Bug 修复**：
 - [x] 路径问题修复（统一使用 pathlib.Path）
 
-### ✅ MVP v0.2（P0 已完成）
+### ✅ MVP v0.2（P0 + P1 已完成）
 
 **优先级 P0（✅ 已完成）**：
 - [x] CLI 主入口完善（main.py）
@@ -556,21 +735,41 @@ python xiaohongshu_manager.py stop
 - [x] 草稿持久化（自动保存到 outputs/drafts）
 - [x] 统一工具返回格式（success/data/message）
 
-**新增功能：**
+**P0 新增功能：**
 - ✅ 完整的环境检查系统（LLM API、MCP 服务、目录结构）
 - ✅ 智能草稿管理器（自动保存、历史查看、草稿清理）
 - ✅ 标准化响应格式（success/data/message/error/metadata）
 - ✅ 增强的 CLI 命令行参数（--check、--skip-mcp-check、--no-save-draft）
 - ✅ 详细的错误提示和故障排除建议
 
+**优先级 P1（✅ 已完成）**：
+- [x] Mock 模式（DevConfig.MOCK_MODE）
+- [x] 基础日志系统配置
+- [x] 简单的烟雾测试
+
+**P1 新增功能：**
+- ✅ 🎭 **Mock 模式** - 完整的模拟数据系统（无需真实 API 即可开发）
+  - Mock 数据生成器（小红书搜索、内容分析、内容创作等）
+  - 集成到 LLM 客户端和 MCP 客户端
+  - 支持环境变量控制
+- ✅ 📋 **统一日志系统** - 专业的日志管理
+  - 带颜色和图标的控制台输出
+  - 自动轮转的文件日志
+  - Logger 管理器和便捷函数
+  - 日志级别动态调整
+- ✅ 🧪 **烟雾测试** - 快速验证核心功能
+  - 7 个核心测试（100% 通过率）
+  - 自动化测试执行
+  - 详细的测试报告
+
 **测试覆盖：**
 - ✅ 功能测试脚本（test_mvp02.py）
+- ✅ 烟雾测试套件（tests/smoke_test.py）- 100% 通过
 - ✅ 所有代码通过 Linter 检查
 
-**优先级 P1（待开发）**：
-- [ ] Mock 模式（DevConfig.MOCK_MODE）
-- [ ] 基础日志系统配置
-- [ ] 简单的烟雾测试
+**详细日志：**
+- 📄 [MVP_V02_CHANGELOG.md](MVP_V02_CHANGELOG.md) - P0 详细更新日志
+- 📄 [MVP_V02_P1_CHANGELOG.md](MVP_V02_P1_CHANGELOG.md) - P1 详细更新日志
 
 ### 🔜 v1.0（规划中 - 2-4周）
 
@@ -612,7 +811,13 @@ A: 不需要。至少配置以下之一即可：
 
 A: 有两种方式：
 1. **只测试分析和创作**：不调用 `publish_to_xiaohongshu`
-2. **Mock 模式**（规划中）：设置 `MOCK_MODE=true` 使用伪数据
+2. **Mock 模式**（✅ 已实现）：设置 `MOCK_MODE=true` 使用模拟数据
+
+```bash
+# 启用 Mock 模式
+export MOCK_MODE=true
+python main.py --skip-mcp-check --mode single --task "测试任务"
+```
 
 ### Q: 为什么提示 "MCP 连接失败"？
 
@@ -645,6 +850,80 @@ result = agent_c_create_content(analysis, topic, quality_level="high")
 
 或在 `config.py` 中修改默认配置。
 
+### Q: Mock 模式和真实模式有什么区别？
+
+A: **Mock 模式**（开发/测试）vs **真实模式**（生产）：
+
+| 特性 | Mock 模式 | 真实模式 |
+|------|----------|----------|
+| API 调用 | ❌ 模拟 | ✅ 真实 |
+| 成本 | 💰 $0 | 💰 有成本 |
+| 响应速度 | ⚡ < 1ms | ⏱️ 网络延迟 |
+| 数据质量 | 📊 固定模拟 | 📊 真实动态 |
+| 适用场景 | 🧪 开发/测试 | 🚀 生产创作 |
+
+**何时使用 Mock 模式：**
+- 开发新功能
+- 调试代码
+- 运行测试
+- 演示系统
+
+**何时使用真实模式：**
+- 创作真实内容
+- 发布到小红书
+- 性能基准测试
+
+### Q: 如何查看日志？
+
+A: 系统提供两种日志查看方式：
+
+**1. 控制台日志**（实时彩色输出）：
+```bash
+python main.py  # 日志会实时显示在控制台
+```
+
+**2. 文件日志**（详细记录）：
+```bash
+# 查看日志文件
+cat outputs/logs/agent.log
+
+# 实时查看日志
+tail -f outputs/logs/agent.log
+
+# 搜索特定内容
+grep "ERROR" outputs/logs/agent.log
+```
+
+**日志级别：**
+- `DEBUG` - 详细调试信息
+- `INFO` - 一般信息（默认）
+- `WARNING` - 警告信息
+- `ERROR` - 错误信息
+- `CRITICAL` - 严重错误
+
+### Q: 烟雾测试失败怎么办？
+
+A: 如果烟雾测试失败：
+
+1. **检查依赖**：
+```bash
+pip install -r requirements.txt
+```
+
+2. **查看详细错误**：
+```bash
+python tests/smoke_test.py  # 会显示详细的错误堆栈
+```
+
+3. **常见问题**：
+   - 缺少 `connectonion` 库：`pip install connectonion`
+   - 路径问题：确保在项目根目录运行
+   - 权限问题：检查 `outputs/` 目录的写权限
+
+4. **获取帮助**：
+   - 查看 [DEVELOPMENT.md](DEVELOPMENT.md)
+   - 提交 [GitHub Issue](../../issues)
+
 ### Q: 未来会支持其他平台吗？
 
 A: 是的！v2.0 计划支持微信公众号、抖音等。当前 MVP 专注于小红书。
@@ -673,5 +952,5 @@ MIT License
 
 **⭐ 如果这个项目对你有帮助，请给个 Star！**
 
-**最后更新**：2025-11-02 | **版本**：MVP v0.2 (P0) | **详细日志**：[MVP_V02_CHANGELOG.md](MVP_V02_CHANGELOG.md)
+**最后更新**：2025-11-02 | **版本**：MVP v0.2 (P0+P1) | **详细日志**：[P0更新](MVP_V02_CHANGELOG.md) | [P1更新](MVP_V02_P1_CHANGELOG.md)
 

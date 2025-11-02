@@ -183,6 +183,21 @@ class LLMClient:
             ...     system_prompt="你是一位专业的情感分析专家"
             ... )
         """
+        # Mock 模式检查
+        from config import DevConfig
+        if DevConfig.MOCK_MODE:
+            logger.info(f"🎭 Mock 模式：模拟 LLM 调用 ({model_name})")
+            from utils.mock_data import get_mock_llm_response
+            
+            # 根据提示词推断任务类型
+            task_type = 'general'
+            if 'analyze' in prompt.lower() or '分析' in prompt:
+                task_type = 'analysis'
+            elif 'create' in prompt.lower() or '创作' in prompt or '生成' in prompt:
+                task_type = 'creation'
+            
+            return get_mock_llm_response(prompt, task_type)
+        
         try:
             provider = self._detect_provider(model_name)
             logger.info(f"调用 {provider} 模型: {model_name}")
