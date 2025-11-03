@@ -24,6 +24,7 @@ Engagement Reviewer Agent
 
 import logging
 import json
+import warnings
 from pathlib import Path
 
 try:
@@ -87,13 +88,16 @@ def create_engagement_reviewer_agent():
     # 4. 创建 Agent
     logger.info(f"创建 Engagement Reviewer Agent，模型: {model_name}")
     
-    agent = Agent(
-        name="engagement_reviewer",
-        system_prompt=system_prompt,
-        tools=tools,
-        model=model_name,
-        max_iterations=10  # 评审通常不需要太多迭代
-    )
+    # 抑制 connectonion 的 system_prompt 警告输出
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning, module="connectonion")
+        agent = Agent(
+            name="engagement_reviewer",
+            system_prompt=system_prompt,
+            tools=tools,
+            model=model_name,
+            max_iterations=10  # 评审通常不需要太多迭代
+        )
     
     logger.info("Engagement Reviewer Agent 创建成功")
     return agent

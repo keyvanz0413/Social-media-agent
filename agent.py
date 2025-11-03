@@ -4,6 +4,7 @@ Main Coordinator Agent
 """
 
 import logging
+import warnings
 from pathlib import Path
 
 try:
@@ -75,13 +76,16 @@ def create_coordinator_agent():
     # 4. 创建 Agent 实例
     logger.info(f"创建 Coordinator Agent，模型: {model_name}")
     
-    agent = Agent(
-        name=coordinator_config.get("name", "social_media_coordinator"),
-        system_prompt=system_prompt,
-        tools=tools,
-        max_iterations=max_iterations,
-        model=model_name
-    )
+    # 抑制 connectonion 的 system_prompt 警告输出
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning, module="connectonion")
+        agent = Agent(
+            name=coordinator_config.get("name", "social_media_coordinator"),
+            system_prompt=system_prompt,
+            tools=tools,
+            max_iterations=max_iterations,
+            model=model_name
+        )
     
     logger.info("Coordinator Agent 创建成功")
     return agent

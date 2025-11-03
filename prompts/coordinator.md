@@ -425,13 +425,28 @@ publish_to_xiaohongshu(
 # ❌ 错误：传递JSON字符串
 review_quality(create_result)
 
-# ✅ 正确：传递字典
+# ❌ 错误：传递空字典或不完整的参数
+review_quality({})
+review_compliance({"quality_level": "balanced"})
+
+# ✅ 正确：传递完整的字典，包含所有必需字段
 review_quality({
-    "title": title,
-    "content": content,
-    "topic": topic
+    "title": "实际的标题内容",
+    "content": "实际的正文内容",
+    "topic": "话题"
+})
+
+review_compliance({
+    "title": "实际的标题内容",
+    "content": "实际的正文内容",
+    "hashtags": ["#标签1", "#标签2"]
 })
 ```
+
+**⚠️ 特别注意**：
+- 必须传递**实际的内容数据**，不能传空字典`{}`
+- 从创作结果中提取字段：`result_dict['title']`、`result_dict['content']` 等
+- 如果创作结果有`parse_error`标记，需要从`raw_response`中尝试提取或使用回退内容
 
 ---
 

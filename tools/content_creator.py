@@ -312,8 +312,17 @@ def _parse_llm_response(
     cleaned_response = cleaned_response.strip()
     
     try:
-        # 尝试解析 JSON
-        result = json.loads(cleaned_response)
+        # 尝试使用 strict=False 来允许控制字符
+        # Python 3.9+ 支持 strict 参数
+        import sys
+        if sys.version_info >= (3, 9):
+            result = json.loads(cleaned_response, strict=False)
+        else:
+            # 对于旧版本，先清理控制字符
+            import re
+            # 移除所有控制字符（除了 \t, \n, \r 在字符串值内的）
+            cleaned_response = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', cleaned_response)
+            result = json.loads(cleaned_response)
         
         # 验证必需字段
         required_fields = ["title", "content", "hashtags"]
@@ -356,9 +365,53 @@ def _parse_llm_response(
         
     except json.JSONDecodeError as e:
         logger.error(f"LLM 响应 JSON 解析失败: {str(e)}")
-        logger.debug(f"原始响应: {raw_response[:500]}")
+        logger.debug(f"原始响应前500字符: {raw_response[:500]}")
         
-        # 回退：返回一个基本结构
+        # 尝试修复常见的JSON问题
+        try:
+            logger.info("尝试修复JSON...")
+            import re
+            
+            # 1. 尝试查找JSON对象的开始和结束
+            json_match = re.search(r'\{.*\}', cleaned_response, re.DOTALL)
+            if json_match:
+                potential_json = json_match.group(0)
+                # 尝试解析找到的JSON
+                result = json.loads(potential_json, strict=False)
+                logger.info("✅ JSON修复成功")
+                
+                # 验证必需字段
+                required_fields = ["title", "content", "hashtags"]
+                for field in required_fields:
+                    if field not in result:
+                        logger.warning(f"修复后的JSON缺少字段: {field}，添加默认值")
+                        if field == "title":
+                            result["title"] = f"关于{topic}的分享"
+                        elif field == "content":
+                            result["content"] = result.get("raw_response", f"关于{topic}的内容...")
+                        elif field == "hashtags":
+                            result["hashtags"] = [f"#{topic}#"]
+                
+                # 确保其他可选字段存在
+                if "alternative_titles" not in result:
+                    result["alternative_titles"] = []
+                if "image_suggestions" not in result:
+                    result["image_suggestions"] = []
+                if "metadata" not in result:
+                    word_count = len(result.get("content", ""))
+                    result["metadata"] = {
+                        "word_count": word_count,
+                        "estimated_reading_time": f"{word_count // 200}分钟",
+                        "style": style,
+                        "target_audience": "小红书用户"
+                    }
+                
+                return result
+        except Exception as repair_error:
+            logger.warning(f"JSON修复失败: {str(repair_error)}")
+        
+        # 最终回退：返回一个基本结构
+        logger.warning("使用回退方案创建基本内容结构")
         return {
             "title": f"关于{topic}的分享",
             "alternative_titles": [],
@@ -369,9 +422,8 @@ def _parse_llm_response(
                 "word_count": len(raw_response),
                 "estimated_reading_time": f"{len(raw_response) // 200}分钟",
                 "style": style,
-                "target_audience": "小红书用户"
-            },
-            "parse_error": True,
-            "raw_response": raw_response[:500]
+                "target_audience": "小红书用户",
+                "parse_error": True
+            }
         }
 
