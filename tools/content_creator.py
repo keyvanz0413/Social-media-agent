@@ -134,18 +134,23 @@ def agent_c_create_content(
         }, ensure_ascii=False)
 
 
-def _parse_analysis_result(analysis_result: str) -> Dict[str, Any]:
+def _parse_analysis_result(analysis_result) -> Dict[str, Any]:
     """
-    解析分析结果 JSON 字符串
+    解析分析结果 JSON 字符串或字典
     
     Args:
-        analysis_result: 分析结果的 JSON 字符串
+        analysis_result: 分析结果的 JSON 字符串或字典对象
         
     Returns:
         解析后的字典
     """
     try:
-        data = json.loads(analysis_result)
+        # 如果已经是字典，直接使用
+        if isinstance(analysis_result, dict):
+            data = analysis_result
+        else:
+            # 尝试解析 JSON 字符串
+            data = json.loads(analysis_result)
         
         # 如果是包含 success 字段的响应，提取实际数据
         if isinstance(data, dict) and "success" in data:
@@ -160,6 +165,9 @@ def _parse_analysis_result(analysis_result: str) -> Dict[str, Any]:
     except json.JSONDecodeError as e:
         logger.error(f"分析结果 JSON 解析失败: {str(e)}")
         # 返回空字典，让后续流程继续
+        return {}
+    except Exception as e:
+        logger.error(f"分析结果解析出错: {str(e)}")
         return {}
 
 
@@ -244,22 +252,31 @@ def _build_user_prompt(
             suggestions = analysis_data['creation_suggestions']
             if suggestions and len(suggestions) > 0:
                 first_suggestion = suggestions[0]
-                prompt_parts.append(f"- 推荐角度: {first_suggestion.get('angle', '')}")
+                # 确保 first_suggestion 是字典类型
+                if isinstance(first_suggestion, dict):
+                    prompt_parts.append(f"- 推荐角度: {first_suggestion.get('angle', '')}")
+                elif isinstance(first_suggestion, str):
+                    prompt_parts.append(f"- 推荐角度: {first_suggestion}")
         
         prompt_parts.append("")
     
     # 创作要求
     prompt_parts.append("## 创作要求")
     prompt_parts.append("请基于以上信息，创作一篇高质量的小红书帖子。")
-    prompt_parts.append("必须严格按照 JSON 格式输出，包含以下字段：")
-    prompt_parts.append("- title: 主标题（20字以内）")
-    prompt_parts.append("- alternative_titles: 备选标题列表（2-3个）")
-    prompt_parts.append("- content: 正文内容（500-1000字，使用格式化，适当使用emoji）")
-    prompt_parts.append("- hashtags: 话题标签列表（3-5个，格式如 #话题#）")
-    prompt_parts.append("- image_suggestions: 图片建议列表（每个包含 position, description, purpose）")
-    prompt_parts.append("- metadata: 元数据（包含 word_count, estimated_reading_time, style, target_audience）")
     prompt_parts.append("")
-    prompt_parts.append("请直接输出 JSON，不要添加任何解释性文字。")
+    prompt_parts.append("⚠️ 重要：必须严格按照 JSON 格式输出，包含以下字段（按顺序）：")
+    prompt_parts.append("1. title: 主标题（20字以内）")
+    prompt_parts.append("2. alternative_titles: 备选标题列表（2-3个）")
+    prompt_parts.append("3. hashtags: 话题标签列表（3-5个，格式如 #话题#）")
+    prompt_parts.append("4. image_suggestions: 图片建议列表（至少4-6个建议，每个包含：")
+    prompt_parts.append("   - position: 图片位置（1, 2, 3...）")
+    prompt_parts.append("   - description: 详细的图片内容描述（用于 AI 生成图片）")
+    prompt_parts.append("   - purpose: 图片用途说明")
+    prompt_parts.append("5. content: 正文内容（500-1000字，使用格式化，适当使用emoji）")
+    prompt_parts.append("6. metadata: 元数据（包含 word_count, estimated_reading_time, style, target_audience）")
+    prompt_parts.append("")
+    prompt_parts.append("⚠️ 特别注意：image_suggestions 必须包含至少 4-6 个详细的图片建议！")
+    prompt_parts.append("请直接输出完整的 JSON，不要添加任何解释性文字。")
     
     return "\n".join(prompt_parts)
 

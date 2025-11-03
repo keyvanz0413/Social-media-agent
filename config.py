@@ -364,7 +364,7 @@ class AgentConfig:
         "content_creator": {
             "model": "claude-opus-4-1-20250805",  # Claude Opus 4.1：最强创意写作
             "temperature": 0.9,
-            "max_tokens": 3000
+            "max_tokens": 5000  # 增加限制，确保能生成完整的内容（包括 image_suggestions）
         },
         "reviewer_engagement": {
             "model": "claude-sonnet-4-20250514",  # Claude Sonnet 4：优秀的数据分析
@@ -372,7 +372,7 @@ class AgentConfig:
             "max_tokens": 1000
         },
         "reviewer_quality": {
-            "model": "claude-sonnet-4-20250514",  # Claude Sonnet 4：准确的质量评估
+            "model": "gpt-4o-mini",  # 改用 GPT-4o-mini：快速、稳定、成本低
             "temperature": 0.3,
             "max_tokens": 1000
         },

@@ -9,7 +9,7 @@ import logging
 import hashlib
 import requests
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
 
 from utils.llm_client import LLMClient, LLMError
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 def generate_images_for_content(
     image_suggestions: str,
     topic: str,
-    count: Optional[int] = None,
+    count: Optional[Union[int, str]] = None,
     method: str = "dalle",
     save_to_disk: bool = True
 ) -> str:
@@ -74,7 +74,16 @@ def generate_images_for_content(
             ]
         
         # 2. 确定生成数量
-        target_count = count or BusinessConfig.IMAGE_GENERATION["count"]
+        # 确保 count 是整数类型（可能从字符串传入）
+        if count is not None:
+            try:
+                target_count = int(count)
+            except (ValueError, TypeError):
+                logger.warning(f"count 参数类型转换失败: {count}，使用默认值")
+                target_count = BusinessConfig.IMAGE_GENERATION["count"]
+        else:
+            target_count = BusinessConfig.IMAGE_GENERATION["count"]
+        
         actual_count = min(target_count, len(suggestions))
         
         logger.info(f"目标生成 {actual_count} 张图片")

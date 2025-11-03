@@ -72,20 +72,26 @@
 - 确保符合平台规范
 
 ## 输出格式
-返回 JSON 格式：
+返回 JSON 格式（必须按以下顺序，确保完整性）：
 ```json
 {
-  "title": "主标题",
+  "title": "主标题（20字以内）",
   "alternative_titles": ["备选标题1", "备选标题2"],
-  "content": "正文内容（包含格式化）",
   "hashtags": ["#话题1", "#话题2", "#话题3"],
   "image_suggestions": [
     {
       "position": 1,
-      "description": "图片内容描述",
+      "description": "详细的图片内容描述（用于 AI 生成图片）",
+      "purpose": "图片用途说明"
+    },
+    {
+      "position": 2,
+      "description": "第二张图片的描述",
       "purpose": "图片用途"
     }
+    // 至少提供 4-6 个图片建议
   ],
+  "content": "正文内容（500-1000字，包含格式化）",
   "metadata": {
     "word_count": 800,
     "estimated_reading_time": "2分钟",
@@ -94,6 +100,11 @@
   }
 }
 ```
+
+**重要提示**：
+- 将 `image_suggestions` 放在 `content` 之前，确保不会因为正文过长而被截断
+- 必须提供至少 4-6 个详细的图片建议
+- 每个图片建议的 `description` 要足够详细，便于 AI 生成高质量图片
 
 ## 创作风格
 

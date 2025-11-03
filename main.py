@@ -45,35 +45,29 @@ def setup_environment() -> Dict[str, Any]:
         'warnings': []
     }
     
-    print("🔧 正在初始化环境...")
-    
-    # 1. 检查必要的目录
+    # 1. 检查必要的目录（静默）
     try:
         PathConfig.ensure_dirs()
-        print("✅ 输出目录已创建")
     except Exception as e:
         results['issues'].append(f"创建目录失败: {str(e)}")
         results['success'] = False
         return results
     
-    # 2. 检查 LLM API 配置
+    # 2. 检查 LLM API 配置（静默）
     llm_configured = False
     
     if ModelConfig.OPENAI_API_KEY:
-        print("✅ OpenAI API Key 已配置")
         llm_configured = True
     else:
         results['warnings'].append("OpenAI API Key 未配置")
     
     if ModelConfig.ANTHROPIC_API_KEY:
-        print("✅ Anthropic API Key 已配置")
         llm_configured = True
     else:
         results['warnings'].append("Anthropic API Key 未配置")
     
     # 检查 Ollama
     if ModelConfig.OLLAMA_BASE_URL:
-        print(f"✅ Ollama 配置: {ModelConfig.OLLAMA_BASE_URL}")
         llm_configured = True
     
     if not llm_configured:
@@ -82,27 +76,20 @@ def setup_environment() -> Dict[str, Any]:
         )
         results['success'] = False
     
-    # 3. 检查 MCP 配置
-    mcp_url = MCPConfig.SERVERS['xiaohongshu']['url']
-    print(f"ℹ️  小红书 MCP 地址: {mcp_url}")
+    # 3. 检查 MCP 配置（静默）
     
-    # 4. 显示配置摘要
-    if DevConfig.DEBUG:
-        print(f"ℹ️  调试模式: 已启用")
-    
+    # 4. 显示配置摘要（仅在有问题时显示）
     if DevConfig.MOCK_MODE:
-        print(f"⚠️  Mock 模式: 已启用（不会调用真实 API）")
         results['warnings'].append("Mock 模式已启用")
     
-    # 5. 总结
-    if results['success']:
-        print("✅ 环境初始化完成\n")
-    else:
+    # 5. 总结（仅在失败时显示详细信息）
+    if not results['success']:
         print("❌ 环境初始化失败\n")
         for issue in results['issues']:
             print(f"  ❌ {issue}")
+        print()
     
-    if results['warnings']:
+    if results['warnings'] and (DevConfig.DEBUG or not results['success']):
         print("⚠️  警告:")
         for warning in results['warnings']:
             print(f"  ⚠️  {warning}")
@@ -118,23 +105,15 @@ def validate_mcp_connection() -> bool:
     Returns:
         bool: 连接是否正常
     """
-    print("🔌 正在检查小红书 MCP 服务...")
-    
     try:
         client = XiaohongshuMCPClient()
         
         # 检查服务健康
         if client.check_health():
-            print("✅ MCP 服务连接正常")
-            
-            # 检查登录状态
+            # 检查登录状态（静默）
             login_status = client.check_login_status()
-            if login_status.get('logged_in', False):
-                username = login_status.get('username', '未知用户')
-                print(f"✅ 已登录小红书账号: {username}")
-            else:
-                print("⚠️  未登录小红书账号")
-                print("💡 提示: 运行 'python xiaohongshu_manager.py login' 进行登录")
+            if not login_status.get('logged_in', False):
+                print("⚠️  未登录小红书账号（运行 'python xiaohongshu_manager.py login'）")
             
             return True
         else:
@@ -143,30 +122,139 @@ def validate_mcp_connection() -> bool:
             
     except Exception as e:
         print(f"❌ MCP 连接失败: {str(e)}")
-        print("\n💡 解决方案:")
-        print("  1. 启动 MCP 服务: python xiaohongshu_manager.py start")
-        print(f"  2. 确认服务地址: {MCPConfig.SERVERS['xiaohongshu']['url']}")
-        print("  3. 检查防火墙设置")
+        print("💡 启动 MCP: python xiaohongshu_manager.py start")
         return False
 
 
 def run_interactive_mode():
     """
     交互式模式 - 与用户对话式交互
+    提供完整的交互体验，包括草稿管理、历史记录等
     """
-    # TODO: 实现交互式对话
-    print("🤖 社交媒体 Agent 已启动（交互模式）")
-    print("请输入你的需求，例如：发表一篇关于澳洲旅游的帖子")
-    print("输入 'quit' 退出\n")
+    from agent import create_coordinator_agent
+    from utils.draft_manager import get_draft_manager
     
-    # while True:
-    #     user_input = input("用户: ")
-    #     if user_input.lower() == 'quit':
-    #         break
-    #     # 调用 coordinator agent
-    #     # response = coordinator.input(user_input)
-    #     # print(f"Agent: {response}")
-    pass
+    # 创建 Agent
+    try:
+        # 临时禁用警告（避免显示大量提示词内容）
+        import warnings
+        warnings.filterwarnings('ignore', category=UserWarning, module='connectonion')
+        
+        coordinator = create_coordinator_agent()
+        
+        # 恢复警告
+        warnings.filterwarnings('default')
+    except ImportError as e:
+        print(f"❌ ConnectOnion 未安装: pip install connectonion")
+        return
+    except Exception as e:
+        print(f"❌ 初始化失败: {str(e)}")
+        logger.error(f"创建 Agent 失败: {str(e)}", exc_info=True)
+        return
+    
+    # 显示简洁的启动信息
+    print_help()
+    
+    # 获取草稿管理器
+    draft_manager = get_draft_manager()
+    
+    # 交互循环
+    while True:
+        try:
+            # 读取用户输入
+            user_input = input("\n👤 你: ").strip()
+            
+            # 处理退出命令
+            if user_input.lower() in ['exit', 'quit', '退出', 'q']:
+                print("\n👋 再见！")
+                break
+            
+            # 处理空输入
+            if not user_input:
+                continue
+            
+            # 处理特殊命令
+            if user_input.lower() in ['help', '帮助', 'h']:
+                print_help()
+                continue
+            
+            if user_input.lower() in ['drafts', '草稿', 'd']:
+                show_drafts(draft_manager)
+                continue
+            
+            if user_input.lower() in ['clear', '清屏', 'cls']:
+                import os
+                os.system('clear' if os.name != 'nt' else 'cls')
+                continue
+            
+            # 调用 Agent 处理请求
+            print("\n🤖 Coordinator: 正在处理...\n")
+            result = coordinator.input(user_input)
+            
+            # 显示结果
+            print(f"\n🤖 Coordinator: {result}\n")
+            print("-" * 70)
+            
+        except KeyboardInterrupt:
+            print("\n\n👋 再见！")
+            break
+        except Exception as e:
+            print(f"\n❌ 错误: {str(e)}\n")
+            logger.error(f"处理用户输入时出错: {str(e)}", exc_info=True)
+            print("💡 提示: 你可以继续输入其他请求，或输入 'help' 查看帮助")
+
+
+def print_help():
+    """显示帮助信息"""
+    print("""
+============================================================
+💡 提示：输入你的需求，例如 '发表一篇关于澳洲旅游的帖子'
+💡 输入 'exit' 或 'quit' 退出
+
+============================================================
+    """)
+
+
+def show_drafts(draft_manager, limit: int = 5):
+    """显示最近的草稿"""
+    print("\n" + "=" * 70)
+    print(f"📝 最近的草稿（最多显示 {limit} 个）")
+    print("=" * 70 + "\n")
+    
+    try:
+        drafts = draft_manager.list_drafts(limit=limit)
+        
+        if not drafts:
+            print("暂无草稿")
+            return
+        
+        for i, draft in enumerate(drafts, 1):
+            content = draft.get('content', {})
+            title = content.get('title', '无标题')
+            topic = draft.get('topic', '未知主题')
+            draft_id = draft.get('draft_id', '未知ID')
+            created_at = draft.get('created_at', '')
+            
+            # 格式化时间
+            if created_at:
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(created_at)
+                    created_at = dt.strftime("%Y-%m-%d %H:%M:%S")
+                except:
+                    pass
+            
+            print(f"{i}. [{topic}] {title}")
+            print(f"   ID: {draft_id}")
+            print(f"   时间: {created_at}")
+            print()
+        
+        print(f"💾 草稿目录: {PathConfig.DRAFTS_DIR}")
+        print("-" * 70)
+        
+    except Exception as e:
+        print(f"❌ 加载草稿失败: {str(e)}")
+        logger.error(f"显示草稿列表失败: {str(e)}", exc_info=True)
 
 
 def run_batch_mode(task_file: str):
@@ -192,26 +280,23 @@ def run_single_task(task: str, save_draft: bool = True):
     from utils.draft_manager import get_draft_manager
     import json
     
-    print("\n" + "=" * 60)
-    print(f"📋 任务: {task}")
-    print("=" * 60 + "\n")
+    print(f"\n📋 任务: {task}\n")
     
     try:
-        # 创建 Coordinator Agent
-        print("🚀 正在初始化 Coordinator Agent...")
+        # 创建 Coordinator Agent（静默）
+        import warnings
+        warnings.filterwarnings('ignore', category=UserWarning, module='connectonion')
         coordinator = create_coordinator_agent()
-        print("✅ Agent 已就绪\n")
+        warnings.filterwarnings('default')
         
         # 执行任务
-        print("🤖 Coordinator: 正在处理任务...\n")
+        print("🤖 正在处理...\n")
         result = coordinator.input(task)
         
         # 显示结果
-        print("\n" + "=" * 60)
-        print("📝 执行结果")
-        print("=" * 60)
+        print("\n📝 结果:")
         print(result)
-        print("=" * 60 + "\n")
+        print()
         
         # 尝试解析和保存草稿（如果结果包含内容数据）
         if save_draft:
@@ -233,12 +318,11 @@ def run_single_task(task: str, save_draft: bool = True):
                                 topic=task,
                                 metadata={'mode': 'single_task'}
                             )
-                            print(f"✅ 草稿已保存: {draft_id}")
-                            print(f"📁 保存路径: {PathConfig.DRAFTS_DIR / f'{draft_id}.json'}\n")
+                            print(f"💾 草稿已保存: {draft_id}\n")
             except Exception as e:
                 logger.debug(f"保存草稿失败（非关键错误）: {str(e)}")
         
-        print("✅ 任务完成！\n")
+        print("✅ 完成\n")
         return True
         
     except ImportError as e:
@@ -324,11 +408,7 @@ def main():
         colorize=LogConfig.CONSOLE_COLORIZE
     )
     
-    print("\n" + "=" * 60)
-    print("🤖 社交媒体 Multi-Agent 系统 - MVP v0.2")
-    print("=" * 60 + "\n")
-    
-    # 初始化环境
+    # 初始化环境（静默）
     env_result = setup_environment()
     
     if not env_result['success']:
@@ -339,22 +419,17 @@ def main():
     if not args.skip_mcp_check:
         mcp_ok = validate_mcp_connection()
         if not mcp_ok:
-            print("\n⚠️  MCP 服务未连接")
-            print("💡 提示: 如果只想测试分析和创作功能，可以添加 --skip-mcp-check 参数")
+            print("⚠️  MCP 服务未连接（可添加 --skip-mcp-check 跳过）")
             
             # 询问是否继续
             if args.mode == "interactive":
-                user_input = input("\n是否继续（不能发布到小红书）？[y/N]: ").strip().lower()
+                user_input = input("是否继续（不能发布到小红书）？[y/N]: ").strip().lower()
                 if user_input not in ['y', 'yes']:
                     print("👋 再见！")
                     sys.exit(0)
             else:
                 print("❌ 在非交互模式下，MCP 服务是必需的")
                 sys.exit(1)
-    else:
-        print("⏭️  已跳过 MCP 连接检查\n")
-    
-    print("✅ 初始化完成\n")
     
     # 仅检查模式
     if args.check:
@@ -363,23 +438,23 @@ def main():
     
     # 根据模式运行
     try:
-    if args.mode == "interactive":
-        run_interactive_mode()
-    elif args.mode == "single":
-        if not args.task:
-            print("❌ 单任务模式需要提供 --task 参数")
+        if args.mode == "interactive":
+            run_interactive_mode()
+        elif args.mode == "single":
+            if not args.task:
+                print("❌ 单任务模式需要提供 --task 参数")
                 print("💡 示例: python main.py --mode single --task '发表一篇关于澳洲旅游的帖子'")
-            sys.exit(1)
+                sys.exit(1)
             
             save_draft = not args.no_save_draft
             success = run_single_task(args.task, save_draft=save_draft)
             sys.exit(0 if success else 1)
             
-    elif args.mode == "batch":
-        if not args.task_file:
-            print("❌ 批处理模式需要提供 --task-file 参数")
-            sys.exit(1)
-        run_batch_mode(args.task_file)
+        elif args.mode == "batch":
+            if not args.task_file:
+                print("❌ 批处理模式需要提供 --task-file 参数")
+                sys.exit(1)
+            run_batch_mode(args.task_file)
             
     except KeyboardInterrupt:
         print("\n\n👋 用户中断，再见！")

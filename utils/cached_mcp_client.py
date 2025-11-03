@@ -51,8 +51,9 @@ class CachedXiaohongshuMCPClient(XiaohongshuMCPClient):
         self,
         keyword: str,
         limit: int = 10,
-        sort_type: str = "general",
-        note_type: int = 0
+        sort_by: str = "",
+        note_type: str = "",
+        publish_time: str = ""
     ) -> Dict[str, Any]:
         """
         搜索小红书笔记（带缓存）
@@ -60,8 +61,9 @@ class CachedXiaohongshuMCPClient(XiaohongshuMCPClient):
         Args:
             keyword: 搜索关键词
             limit: 返回数量
-            sort_type: 排序类型
-            note_type: 笔记类型
+            sort_by: 排序方式（空=默认, "综合", "最新", "最多点赞", "最多评论", "最多收藏"）
+            note_type: 笔记类型（空=全部, "视频", "图文"）
+            publish_time: 发布时间（空=全部, "一天内", "一周内", "半年内"）
             
         Returns:
             搜索结果
@@ -71,8 +73,9 @@ class CachedXiaohongshuMCPClient(XiaohongshuMCPClient):
             "mcp_search",
             keyword,
             limit=limit,
-            sort_type=sort_type,
-            note_type=note_type
+            sort_by=sort_by,
+            note_type=note_type,
+            publish_time=publish_time
         )
         
         # 尝试从缓存获取
@@ -84,7 +87,13 @@ class CachedXiaohongshuMCPClient(XiaohongshuMCPClient):
         
         # 调用父类方法进行实际搜索
         logger.info(f"🔍 执行 MCP 搜索: {keyword}")
-        result = super().search_notes(keyword, limit, sort_type, note_type)
+        result = super().search_notes(
+            keyword=keyword,
+            limit=limit,
+            sort_by=sort_by,
+            note_type=note_type,
+            publish_time=publish_time
+        )
         
         # 缓存结果
         if self.cache_enabled and result:

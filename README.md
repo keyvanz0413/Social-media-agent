@@ -59,6 +59,49 @@ OPENAI_BASE_URL=你的第三方平台URL
 
 ### 3. 使用
 
+#### 方式 1：交互式模式（推荐）
+
+```bash
+# 启动交互式对话
+python main.py
+
+# 或跳过 MCP 检查（仅测试分析和创作）
+python main.py --skip-mcp-check
+```
+
+交互式模式功能：
+- 💬 自然语言对话，一句话完成任务
+- 📋 内置命令：`help`（帮助）、`drafts`（查看草稿）、`clear`（清屏）
+- 📁 自动保存草稿，支持历史查看
+- ⚡ 智能错误处理，不会因错误退出
+
+**使用示例**：
+```
+👤 你: 发表一篇关于悉尼旅游的帖子
+🤖 Coordinator: 正在处理...
+[自动完成：分析 → 创作 → 生成图片 → 评审 → 发布]
+
+👤 你: drafts
+📝 最近的草稿...
+
+👤 你: exit
+👋 再见！
+```
+
+详细说明请参考：[交互式模式使用指南](./docs/INTERACTIVE_MODE.md)
+
+#### 方式 2：单任务模式
+
+```bash
+# 执行单个任务
+python main.py --mode single --task "发表一篇关于澳洲旅游的帖子"
+
+# 不自动保存草稿
+python main.py --mode single --task "分析健身话题" --no-save-draft
+```
+
+#### 方式 3：Python API
+
 ```python
 from agent import create_coordinator_agent
 
