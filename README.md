@@ -50,9 +50,12 @@ pip install -r requirements.txt
 # 复制配置文件
 cp env.example .env
 
-# 编辑 .env，添加你的 OpenAI API Key
-OPENAI_API_KEY=sk-...
+# 编辑 .env，添加以下配置：
+OPENAI_API_KEY=你的第三方平台API_KEY
+OPENAI_BASE_URL=你的第三方平台URL
 ```
+
+**注意**：项目已配置顶级模型（Claude Opus 4.1, Claude 3.7, GPT-5 Mini 等），需要使用支持这些模型的第三方平台。
 
 ### 3. 使用
 
@@ -133,27 +136,14 @@ Social-media-agent/
 ## 🛠️ 技术栈
 
 - **Agent 框架**: [ConnectOnion](https://github.com/connectonion/connectonion)
-- **LLM**: OpenAI (GPT-4o, GPT-4o-mini) / Anthropic (Claude) / Ollama
+- **LLM**: 顶级模型组合
+  - Coordinator: GPT-5 Mini（快速协调）
+  - Creator: Claude Opus 4.1（顶级创作）
+  - Analyst: Claude 3.7 Sonnet（深度分析）
+  - Reviewers: Claude Sonnet 4（准确评审）
 - **图片生成**: DALL-E 3 / Stable Diffusion
 - **MCP 服务**: [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp)
 - **语言**: Python 3.8+
-
----
-
-## 🎉 版本历史
-
-### v0.7（当前）⚡
-- 并行执行 + 智能缓存
-- 性能提升 99%，成本节省 70%
-
-### v0.6
-- 评审系统集成
-
-### v0.5
-- Quality Reviewer Agent
-
-### v0.4
-- Engagement Reviewer Agent
 
 ---
 

@@ -345,39 +345,39 @@ class AgentConfig:
     COORDINATOR = {
         "name": "social_media_coordinator",
         "max_iterations": 30,
-        "model": ModelConfig.MODELS["reasoning"]["name"],
+        "model": "gpt-5-mini-2025-08-07",  # 快速决策、成本低
         "temperature": 0.7
     }
     
-    # 子 Agent 配置
+    # 子 Agent 配置（已根据平台可用模型优化）
     SUB_AGENTS = {
         "content_analyst": {
-            "model": ModelConfig.MODELS["reasoning"]["name"],
+            "model": "claude-3-7-sonnet-20250219",  # Claude 3.7：最强分析推理
             "temperature": 0.5,
             "max_tokens": 4000
         },
         "image_generator": {
-            "model": ModelConfig.MODELS["vision"]["name"],
+            "model": "Qwen/Qwen3-VL-32B-Instruct",  # Qwen 3 VL：多模态视觉
             "temperature": 0.8,
             "max_tokens": 2000
         },
         "content_creator": {
-            "model": ModelConfig.MODELS["creative"]["name"],
+            "model": "claude-opus-4-1-20250805",  # Claude Opus 4.1：最强创意写作
             "temperature": 0.9,
             "max_tokens": 3000
         },
         "reviewer_engagement": {
-            "model": ModelConfig.MODELS["fast"]["name"],
+            "model": "claude-sonnet-4-20250514",  # Claude Sonnet 4：优秀的数据分析
             "temperature": 0.3,
             "max_tokens": 1000
         },
         "reviewer_quality": {
-            "model": ModelConfig.MODELS["fast"]["name"],
+            "model": "claude-sonnet-4-20250514",  # Claude Sonnet 4：准确的质量评估
             "temperature": 0.3,
             "max_tokens": 1000
         },
         "reviewer_compliance": {
-            "model": ModelConfig.MODELS["local"]["name"],
+            "model": "gpt-4.1-mini-2025-04-14",  # GPT-4.1 Mini：快速合规检查
             "temperature": 0.1,
             "max_tokens": 1000
         }
