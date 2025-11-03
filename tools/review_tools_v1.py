@@ -206,12 +206,13 @@ def review_engagement(
 """
         
         # 调用 LLM
-        model = ModelRouter.get_model(TaskType.REVIEW, QualityLevel(quality_level))
+        router = ModelRouter()
+        model = router.select_model(TaskType.REVIEW, QualityLevel(quality_level))
         client = LLMClient()
         
-        response = client.call(
-            model=model,
+        response = client.call_llm(
             prompt=prompt,
+            model_name=model,
             temperature=0.3,  # 评审需要稳定性
             response_format="json"
         )
@@ -317,12 +318,13 @@ def review_quality(
 }}
 """
         
-        model = ModelRouter.get_model(TaskType.REVIEW, QualityLevel(quality_level))
+        router = ModelRouter()
+        model = router.select_model(TaskType.REVIEW, QualityLevel(quality_level))
         client = LLMClient()
         
-        response = client.call(
-            model=model,
+        response = client.call_llm(
             prompt=prompt,
+            model_name=model,
             temperature=0.2,
             response_format="json"
         )

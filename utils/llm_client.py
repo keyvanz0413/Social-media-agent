@@ -200,6 +200,8 @@ class LLMClient:
                 task_type = 'analysis'
             elif 'create' in prompt.lower() or '创作' in prompt or '生成' in prompt:
                 task_type = 'creation'
+            elif 'review' in prompt.lower() or '评审' in prompt or '评分' in prompt:
+                task_type = 'review'
             
             return get_mock_llm_response(prompt, task_type)
         

@@ -256,6 +256,25 @@ def get_mock_llm_response(prompt: str, task_type: str = 'general') -> str:
             ensure_ascii=False,
             indent=2
         )
+    elif task_type == 'review':
+        # 模拟评审响应
+        return json.dumps({
+            "score": 8.0,
+            "strengths": [
+                "内容结构清晰",
+                "表达流畅自然",
+                "有一定的实用价值"
+            ],
+            "weaknesses": [
+                "部分细节可以更充实",
+                "互动引导略显不足"
+            ],
+            "suggestions": [
+                "可以添加更多具体的细节和案例",
+                "在结尾增加互动引导，如提问或征集意见",
+                "标题可以更加吸引眼球"
+            ]
+        }, ensure_ascii=False, indent=2)
     else:
         return "这是一个模拟的 LLM 响应。"
 
