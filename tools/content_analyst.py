@@ -1,6 +1,5 @@
 """
-Content Analyst
-分析小红书热门内容，提取创作灵感和数据洞察
+内容分析工具 - 分析小红书热门内容
 """
 
 import json
@@ -9,8 +8,8 @@ from typing import Dict, Any, List
 from datetime import datetime
 from functools import lru_cache
 
-from utils.mcp_client import XiaohongshuMCPClient, XiaohongshuMCPError
-from utils.llm_client import LLMClient, LLMError
+from utils.mcp_client import XiaohongshuMCPClient
+from utils.llm_client import LLMClient
 from utils.model_router import ModelRouter, TaskType, QualityLevel
 from utils.common_tools import parse_llm_json, handle_tool_errors
 from config import Config
@@ -19,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @handle_tool_errors("内容分析")
-def agent_a_analyze_xiaohongshu(
+def analyze_xiaohongshu(
     keyword: str,
     limit: int = 5,
     quality_level: str = "balanced"
@@ -275,5 +274,5 @@ def _build_prompt(notes: List[Dict[str, Any]], keyword: str) -> str:
 
 
 # 导出
-__all__ = ['agent_a_analyze_xiaohongshu']
+__all__ = ['analyze_xiaohongshu']
 

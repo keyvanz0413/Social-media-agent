@@ -1,22 +1,19 @@
 """
-Agent C: Content Creator
-基于分析结果创作高质量小红书内容
+内容创作工具 - 基于分析结果创作小红书内容
 """
 
 import json
 import logging
-from pathlib import Path
 from typing import Dict, Any, Optional
 
 from utils.llm_client import LLMClient, LLMError
 from utils.model_router import ModelRouter, TaskType, QualityLevel
-from config import AgentConfig, PathConfig
+from config import Config
 
-# 配置日志
 logger = logging.getLogger(__name__)
 
 
-def agent_c_create_content(
+def create_content(
     analysis_result: str,
     topic: str,
     style: str = "casual",
@@ -67,7 +64,7 @@ def agent_c_create_content(
         logger.info(f"选择模型: {model_name} (质量级别: {quality.value})")
         
         # 5. 获取 LLM 配置
-        creator_config = AgentConfig.AGENT_CONFIGS["content_creator"]
+        creator_config = Config.AGENT_CONFIGS["content_creator"]
         temperature = creator_config["temperature"]
         max_tokens = creator_config["max_tokens"]
         
@@ -172,22 +169,17 @@ def _parse_analysis_result(analysis_result) -> Dict[str, Any]:
 
 
 def _load_system_prompt() -> str:
-    """
-    加载系统提示词
-    
-    Returns:
-        系统提示词内容
-    """
-    prompt_path = PathConfig.PROMPTS_DIR / "content_creator.md"
+    """加载系统提示词"""
+    prompt_path = Config.PROMPTS_DIR / "content_creator.md"
     
     try:
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        logger.warning(f"提示词文件不存在: {prompt_path}，使用默认提示词")
+        logger.warning(f"提示词文件不存在: {prompt_path}")
         return _get_default_system_prompt()
     except Exception as e:
-        logger.error(f"读取提示词文件失败: {str(e)}，使用默认提示词")
+        logger.error(f"读取提示词失败: {str(e)}")
         return _get_default_system_prompt()
 
 

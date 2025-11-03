@@ -1,7 +1,6 @@
 """
-Image Generator Agent
-根据内容描述生成或搜索合适的图片
-支持多种图片生成方式：AI生成、免费图库搜索
+图片生成工具 - 使用AI生成或搜索图片
+支持DALL-E和本地Stable Diffusion
 """
 
 import json
@@ -13,9 +12,8 @@ from typing import Dict, Any, List, Optional, Union
 from datetime import datetime
 
 from utils.llm_client import LLMClient, LLMError
-from config import PathConfig, BusinessConfig, ModelConfig
+from config import Config
 
-# 配置日志
 logger = logging.getLogger(__name__)
 
 
@@ -74,15 +72,14 @@ def generate_images_for_content(
             ]
         
         # 2. 确定生成数量
-        # 确保 count 是整数类型（可能从字符串传入）
         if count is not None:
             try:
                 target_count = int(count)
             except (ValueError, TypeError):
-                logger.warning(f"count 参数类型转换失败: {count}，使用默认值")
-                target_count = BusinessConfig.IMAGE_GENERATION["count"]
+                logger.warning(f"count 参数转换失败: {count}")
+                target_count = Config.IMAGE_GENERATION["count"]
         else:
-            target_count = BusinessConfig.IMAGE_GENERATION["count"]
+            target_count = Config.IMAGE_GENERATION["count"]
         
         actual_count = min(target_count, len(suggestions))
         
@@ -181,18 +178,10 @@ def _generate_from_unsplash(
     topic: str,
     save_to_disk: bool
 ) -> List[Dict[str, Any]]:
-    """
-    从 Unsplash 搜索图片（免费、无需API Key、高质量）
-    
-    使用 Unsplash 的公开 API：https://unsplash.com/developers
-    """
+    """从Unsplash搜索图片（免费，建议配置API Key）"""
     logger.info("使用 Unsplash 搜索图片")
     
-    # Unsplash API 配置
-    # 注意：Unsplash 有公开的 Source API，不需要注册即可使用
-    # 但建议注册获取 Access Key 以获得更高的请求限制
-    access_key = ModelConfig.OPENAI_API_KEY  # 可以在环境变量中配置 UNSPLASH_ACCESS_KEY
-    
+    access_key = None  # 可以在环境变量配置 UNSPLASH_ACCESS_KEY
     images = []
     
     for idx, suggestion in enumerate(suggestions):
@@ -371,26 +360,23 @@ def _generate_from_dalle(
     topic: str,
     save_to_disk: bool
 ) -> List[Dict[str, Any]]:
-    """
-    使用 DALL-E 3 生成图片（需要 OpenAI API Key，较贵）
-    """
+    """使用DALL-E 3生成图片"""
     logger.info("使用 DALL-E 3 生成图片")
     
-    if not ModelConfig.OPENAI_API_KEY:
-        logger.error("OPENAI_API_KEY 未配置，无法使用 DALL-E")
+    if not Config.OPENAI_API_KEY:
+        logger.error("OPENAI_API_KEY 未配置")
         return []
     
     try:
         from openai import OpenAI
-        # 配置客户端：减少重试次数和超时时间
         client = OpenAI(
-            api_key=ModelConfig.OPENAI_API_KEY,
-            base_url=ModelConfig.OPENAI_BASE_URL,
-            max_retries=1,  # 最多重试1次（默认是2次）
-            timeout=60.0     # 60秒超时
+            api_key=Config.OPENAI_API_KEY,
+            base_url=Config.OPENAI_BASE_URL,
+            max_retries=1,
+            timeout=60.0
         )
     except ImportError:
-        logger.error("openai 库未安装，无法使用 DALL-E")
+        logger.error("openai 库未安装")
         return []
     
     images = []
@@ -654,12 +640,11 @@ def _download_and_save_image(
         
         # 2. 生成文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        # 生成唯一文件名（使用URL哈希避免重复）
         url_hash = hashlib.md5(image_url.encode()).hexdigest()[:8]
         filename = f"{timestamp}_{topic}_{index + 1}_{source}_{url_hash}.jpg"
         
         # 3. 保存到本地
-        save_path = PathConfig.IMAGES_DIR / filename
+        save_path = Config.IMAGES_DIR / filename
         save_path.parent.mkdir(parents=True, exist_ok=True)
         
         with open(save_path, "wb") as f:
@@ -693,7 +678,7 @@ def _save_base64_image(
         filename = f"{timestamp}_{topic}_{index + 1}_{source}.png"
         
         # 保存到本地
-        save_path = PathConfig.IMAGES_DIR / filename
+        save_path = Config.IMAGES_DIR / filename
         save_path.parent.mkdir(parents=True, exist_ok=True)
         
         with open(save_path, "wb") as f:
@@ -726,12 +711,12 @@ def generate_images_from_draft(
     """
     try:
         # 1. 读取草稿文件
-        draft_path = PathConfig.DRAFTS_DIR / f"{draft_id}.json"
+        draft_path = Config.DRAFTS_DIR / f"{draft_id}.json"
         
         if not draft_path.exists():
             return json.dumps({
                 "success": False,
-                "error": f"草稿文件不存在: {draft_id}",
+                "error": f"草稿不存在: {draft_id}",
                 "message": "图片生成失败"
             }, ensure_ascii=False)
         

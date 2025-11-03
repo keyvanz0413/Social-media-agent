@@ -1,19 +1,6 @@
 """
-Quality Reviewer（简化版）
-内容质量评审
-
-职责：
-- 评估内容的语法、逻辑、原创性
-- 分析可读性和信息准确性
-- 提供具体的优化建议
-
-输出：
-- score: 质量评分 (0-10)
-- strengths: 优势列表
-- weaknesses: 不足列表
-- suggestions: 优化建议列表
-
-注意：已简化，使用直接LLM评估
+内容质量评审工具
+评估语法、逻辑、原创性等
 """
 
 import logging
@@ -115,21 +102,17 @@ def review_quality(content_data: dict, quality_level: str = "balanced") -> str:
         )
         
     except Exception as e:
-        logger.error(f"内容质量评审失败: {str(e)}", exc_info=True)
-        # 降级
-        fallback_score = 7.0  # 默认中等分数
+        logger.error(f"评审失败: {str(e)}", exc_info=True)
+        fallback_score = 7.0
         return create_success_response(
             data={
                 "score": fallback_score,
                 "strengths": [],
-                "weaknesses": ["评审失败，使用默认分数"],
-                "suggestions": ["建议稍后重试"]
+                "weaknesses": ["评审失败"],
+                "suggestions": ["稍后重试"]
             },
-            message="使用降级策略完成评审"
+            message="使用降级策略"
         )
 
 
-# 导出
-__all__ = [
-    "review_quality"
-]
+__all__ = ['review_quality']

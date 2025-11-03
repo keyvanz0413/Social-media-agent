@@ -1,90 +1,57 @@
 """
-Main Coordinator Agent
-主协调 Agent - 负责整体流程的协调和管理
+协调Agent - 负责整体流程的协调和管理
 """
 
 import logging
 import warnings
-from pathlib import Path
 
 try:
     from connectonion import Agent
 except ImportError:
     Agent = None
-    logging.warning("ConnectOnion 未安装，无法使用 Coordinator Agent")
+    logging.warning("ConnectOnion 未安装")
 
-# 导入工具函数
-from tools.content_analyst import agent_a_analyze_xiaohongshu
-from tools.content_creator import agent_c_create_content
+from tools.content_analyst import analyze_xiaohongshu
+from tools.content_creator import create_content
 from tools.image_generator import generate_images_for_content, generate_images_from_draft
 from tools.publisher import publish_to_xiaohongshu
-
-# 导入评审函数
 from agents.reviewers.engagement_reviewer import review_engagement
 from agents.reviewers.quality_reviewer import review_quality
 from tools.review_tools_v1 import review_compliance
+from config import Config
 
-# 导入配置
-from config import AgentConfig, PathConfig, ModelConfig
-
-# 配置日志
 logger = logging.getLogger(__name__)
 
 
 def create_coordinator_agent():
-    """
-    创建主协调 Agent
-    
-    Returns:
-        配置好的 Agent 实例
-        
-    Example:
-        >>> agent = create_coordinator_agent()
-        >>> result = agent.input("发表一篇关于澳洲旅游的帖子")
-        >>> print(result)
-    """
+    """创建主协调Agent"""
     if Agent is None:
-        raise ImportError(
-            "ConnectOnion 框架未安装。请运行: pip install connectonion"
-        )
+        raise ImportError("ConnectOnion 框架未安装。请运行: pip install connectonion")
     
-    # 1. 加载系统提示词
     system_prompt = _load_system_prompt()
     
-    # 2. 注册所有工具函数
     tools = [
-        # 内容创作工具
-        agent_a_analyze_xiaohongshu,
-        agent_c_create_content,
+        analyze_xiaohongshu,
+        create_content,
         generate_images_for_content,
         generate_images_from_draft,
-        
-        # 评审工具
-        review_engagement,      # Agent 评审：互动潜力
-        review_quality,         # Agent 评审：内容质量
-        review_compliance,      # 函数评审：合规性
-        
-        # 发布工具
+        review_engagement,
+        review_quality,
+        review_compliance,
         publish_to_xiaohongshu
     ]
     
-    # 3. 获取配置
-    coordinator_config = AgentConfig.AGENT_CONFIGS.get("coordinator", {})
-    model_name = coordinator_config.get("model", "gpt-4o")
-    max_iterations = coordinator_config.get("max_iterations", 30)
+    config = Config.AGENT_CONFIGS["coordinator"]
+    logger.info(f"创建 Coordinator Agent，模型: {config['model']}")
     
-    # 4. 创建 Agent 实例
-    logger.info(f"创建 Coordinator Agent，模型: {model_name}")
-    
-    # 抑制 connectonion 的 system_prompt 警告输出
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", category=UserWarning, module="connectonion")
         agent = Agent(
-            name=coordinator_config.get("name", "social_media_coordinator"),
+            name=config["name"],
             system_prompt=system_prompt,
             tools=tools,
-            max_iterations=max_iterations,
-            model=model_name
+            max_iterations=config["max_iterations"],
+            model=config["model"]
         )
     
     logger.info("Coordinator Agent 创建成功")
@@ -92,22 +59,17 @@ def create_coordinator_agent():
 
 
 def _load_system_prompt() -> str:
-    """
-    加载系统提示词
-    
-    Returns:
-        系统提示词内容
-    """
-    prompt_path = PathConfig.PROMPTS_DIR / "coordinator.md"
+    """加载系统提示词"""
+    prompt_path = Config.PROMPTS_DIR / "coordinator.md"
     
     try:
         with open(prompt_path, "r", encoding="utf-8") as f:
             return f.read()
     except FileNotFoundError:
-        logger.warning(f"提示词文件不存在: {prompt_path}，使用默认提示词")
+        logger.warning(f"提示词文件不存在: {prompt_path}")
         return _get_default_system_prompt()
     except Exception as e:
-        logger.error(f"读取提示词文件失败: {str(e)}，使用默认提示词")
+        logger.error(f"读取提示词失败: {str(e)}")
         return _get_default_system_prompt()
 
 

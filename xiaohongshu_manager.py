@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 小红书MCP服务管理脚本
-用于管理MCP服务的启动、停止、登录等操作
+管理MCP服务的启动、停止、登录等
 """
 
 import os
@@ -13,79 +13,75 @@ import requests
 import psutil
 from pathlib import Path
 
-# 配置路径
-MCP_DIR = Path("/Users/keyvanzhuo/Documents/CodeProjects/ConnetOnion/xiaohongshu-mcp")
+# 自动检测MCP目录
+def detect_mcp_dir():
+    """自动检测MCP服务目录"""
+    # 方法1: 从环境变量
+    env_dir = os.getenv("XIAOHONGSHU_MCP_DIR")
+    if env_dir:
+        return Path(env_dir)
+    
+    # 方法2: 相对于当前脚本的父目录
+    script_parent = Path(__file__).parent.parent
+    candidate = script_parent / "xiaohongshu-mcp"
+    if candidate.exists():
+        return candidate
+    
+    # 方法3: 默认路径
+    return Path.home() / "xiaohongshu-mcp"
+
+MCP_DIR = detect_mcp_dir()
 MCP_BIN = MCP_DIR / "xiaohongshu-mcp"
 LOGIN_BIN = MCP_DIR / "xiaohongshu-login"
 PID_FILE = MCP_DIR / "xiaohongshu-mcp.pid"
 LOG_FILE = MCP_DIR / "xiaohongshu-mcp.log"
 
 # 服务配置
-MCP_URL = "http://localhost:18060"
+MCP_URL = os.getenv("MCP_XIAOHONGSHU_URL", "http://localhost:18060")
 API_URL = f"{MCP_URL}/api/v1"
 
 
 class Colors:
     """终端颜色"""
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BLUE = '\033[94m'
-    BOLD = '\033[1m'
-    END = '\033[0m'
-
+    GREEN, YELLOW, RED, BLUE, BOLD, END = '\033[92m', '\033[93m', '\033[91m', '\033[94m', '\033[1m', '\033[0m'
 
 def print_header(text):
-    """打印标题"""
-    print(f"\n{Colors.BOLD}{Colors.BLUE}{'='*60}{Colors.END}")
-    print(f"{Colors.BOLD}{Colors.BLUE}  {text}{Colors.END}")
-    print(f"{Colors.BOLD}{Colors.BLUE}{'='*60}{Colors.END}\n")
-
+    print(f"\n{Colors.BOLD}{Colors.BLUE}{'='*60}\n  {text}\n{'='*60}{Colors.END}\n")
 
 def print_success(text):
-    """打印成功信息"""
     print(f"{Colors.GREEN}✅ {text}{Colors.END}")
 
-
 def print_error(text):
-    """打印错误信息"""
     print(f"{Colors.RED}❌ {text}{Colors.END}")
 
-
 def print_warning(text):
-    """打印警告信息"""
     print(f"{Colors.YELLOW}⚠️  {text}{Colors.END}")
 
-
 def print_info(text):
-    """打印普通信息"""
     print(f"{Colors.BLUE}ℹ️  {text}{Colors.END}")
 
 
 def check_binaries():
-    """检查二进制文件是否存在"""
+    """检查二进制文件"""
     if not MCP_BIN.exists():
-        print_error(f"MCP服务程序不存在: {MCP_BIN}")
-        print_info("请先编译或下载 xiaohongshu-mcp")
+        print_error(f"MCP服务不存在: {MCP_BIN}")
+        print_info("请先编译或配置 XIAOHONGSHU_MCP_DIR 环境变量")
         return False
     
     if not LOGIN_BIN.exists():
         print_error(f"登录工具不存在: {LOGIN_BIN}")
-        print_info("请先编译登录工具: go build -o xiaohongshu-login cmd/login/main.go")
         return False
     
     return True
 
 
 def is_service_running():
-    """检查服务是否正在运行"""
-    # 方法1: 检查PID文件
+    """检查服务是否运行"""
+    # 检查PID文件
     if PID_FILE.exists():
         try:
             with open(PID_FILE, 'r') as f:
                 pid = int(f.read().strip())
-            
-            # 检查进程是否存在
             if psutil.pid_exists(pid):
                 try:
                     proc = psutil.Process(pid)
@@ -96,7 +92,7 @@ def is_service_running():
         except (ValueError, FileNotFoundError):
             pass
     
-    # 方法2: 通过进程名查找
+    # 通过进程名查找
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
         try:
             cmdline = proc.info.get('cmdline', [])
@@ -111,87 +107,66 @@ def is_service_running():
 def check_service_health():
     """检查服务健康状态"""
     try:
-        response = requests.get(f"{MCP_URL}/health", timeout=5)
-        return response.status_code == 200
+        return requests.get(f"{MCP_URL}/health", timeout=5).status_code == 200
     except:
         return False
-
 
 def check_login_status():
     """检查登录状态"""
     try:
         response = requests.get(f"{API_URL}/login/status", timeout=5)
         if response.status_code == 200:
-            result = response.json()
-            return result.get('data', {}).get('is_logged_in', False)
+            return response.json().get('data', {}).get('is_logged_in', False)
     except:
-        pass
-    return False
+        return False
 
 
 def start_service(headless=True):
     """启动MCP服务"""
     print_header("启动小红书MCP服务")
     
-    # 检查二进制文件
     if not check_binaries():
         return False
     
-    # 检查是否已经运行
     pid = is_service_running()
     if pid:
-        print_warning(f"服务已经在运行 (PID: {pid})")
+        print_warning(f"服务已运行 (PID: {pid})")
         return True
     
-    # 启动服务
-    print_info("正在启动服务...")
+    print_info("正在启动...")
     
     try:
-        # 打开日志文件
         log_file = open(LOG_FILE, 'a')
+        cmd = [str(MCP_BIN), f'-headless={str(headless).lower()}']
         
-        # 构建命令
-        cmd = [str(MCP_BIN)]
-        if headless:
-            cmd.extend(['-headless=true'])
-        else:
-            cmd.extend(['-headless=false'])
-        
-        # 启动进程
         process = subprocess.Popen(
-            cmd,
-            cwd=str(MCP_DIR),
-            stdout=log_file,
-            stderr=subprocess.STDOUT,
+            cmd, cwd=str(MCP_DIR),
+            stdout=log_file, stderr=subprocess.STDOUT,
             start_new_session=True
         )
         
-        # 保存PID
         with open(PID_FILE, 'w') as f:
             f.write(str(process.pid))
         
-        # 等待服务启动
-        print_info("等待服务启动...")
-        for i in range(10):
+        print_info("等待启动...")
+        for _ in range(10):
             time.sleep(1)
             if check_service_health():
                 print_success(f"服务启动成功 (PID: {process.pid})")
-                print_info(f"服务地址: {MCP_URL}")
-                print_info(f"日志文件: {LOG_FILE}")
+                print_info(f"地址: {MCP_URL}")
+                print_info(f"日志: {LOG_FILE}")
                 
-                # 检查登录状态
                 if check_login_status():
                     print_success("已登录小红书")
                 else:
-                    print_warning("未登录小红书，请运行: python xiaohongshu_manager.py login")
-                
+                    print_warning("未登录，运行: python xiaohongshu_manager.py login")
                 return True
         
-        print_error("服务启动超时，请检查日志")
+        print_error("启动超时")
         return False
         
     except Exception as e:
-        print_error(f"启动服务失败: {str(e)}")
+        print_error(f"启动失败: {str(e)}")
         return False
 
 

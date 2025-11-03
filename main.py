@@ -1,10 +1,6 @@
 """
-Social Media Agent - Main Entry Point
-社交媒体 Agent 系统的主入口
-
-核心功能：
-- 交互式对话模式
-- 单任务执行模式
+Social Media Agent - 主入口
+交互式对话模式和单任务执行模式
 """
 
 import sys
@@ -12,13 +8,9 @@ import argparse
 import logging
 from typing import Dict, Any
 
-# 导入配置
-from config import ModelConfig, PathConfig, LogConfig, DevConfig
-
-# 导入工具
+from config import Config
 from utils.mcp_client import XiaohongshuMCPClient
 
-# 配置日志
 logger = logging.getLogger(__name__)
 
 
@@ -168,28 +160,18 @@ def run_single_task(task: str):
 
 
 def check_environment() -> Dict[str, Any]:
-    """
-    简化的环境检查
-    
-    Returns:
-        检查结果字典
-    """
+    """环境检查"""
     issues = []
     
-    # 检查必要的目录
     try:
-        PathConfig.ensure_dirs()
+        Config.ensure_dirs()
     except Exception as e:
         issues.append(f"创建目录失败: {str(e)}")
     
-    # 检查 API 配置
-    if not ModelConfig.OPENAI_API_KEY and not ModelConfig.ANTHROPIC_API_KEY:
+    if not Config.OPENAI_API_KEY and not Config.ANTHROPIC_API_KEY:
         issues.append("未配置 API Key（需要 OPENAI_API_KEY 或 ANTHROPIC_API_KEY）")
     
-    return {
-        'success': len(issues) == 0,
-        'issues': issues
-    }
+    return {'success': len(issues) == 0, 'issues': issues}
 
 
 def main():
@@ -237,12 +219,12 @@ def main():
     
     # 配置日志系统
     from utils.logger_config import setup_logging
-    log_level = 'DEBUG' if DevConfig.DEBUG else LogConfig.LOG_LEVEL
+    log_level = 'DEBUG' if Config.DEBUG else Config.LOG_LEVEL
     setup_logging(
         level=log_level,
-        console_enabled=LogConfig.LOG_CONSOLE_ENABLED,
-        file_enabled=LogConfig.LOG_FILE_ENABLED,
-        colorize=LogConfig.LOG_CONSOLE_COLORIZE
+        console_enabled=Config.LOG_CONSOLE_ENABLED,
+        file_enabled=Config.LOG_FILE_ENABLED,
+        colorize=Config.LOG_CONSOLE_COLORIZE
     )
     
     # 环境检查
@@ -261,10 +243,10 @@ def main():
         print("=" * 70 + "\n")
         
         print("📋 配置信息:")
-        print(f"  - OpenAI API: {'✅ 已配置' if ModelConfig.OPENAI_API_KEY else '❌ 未配置'}")
-        print(f"  - Anthropic API: {'✅ 已配置' if ModelConfig.ANTHROPIC_API_KEY else '❌ 未配置'}")
-        print(f"  - 日志级别: {ModelConfig.LOG_LEVEL}")
-        print(f"  - 调试模式: {'开启' if ModelConfig.DEBUG else '关闭'}")
+        print(f"  - OpenAI API: {'✅ 已配置' if Config.OPENAI_API_KEY else '❌ 未配置'}")
+        print(f"  - Anthropic API: {'✅ 已配置' if Config.ANTHROPIC_API_KEY else '❌ 未配置'}")
+        print(f"  - 日志级别: {Config.LOG_LEVEL}")
+        print(f"  - 调试模式: {'开启' if Config.DEBUG else '关闭'}")
         print()
         
         if not args.skip_mcp_check:

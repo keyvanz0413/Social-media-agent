@@ -1,7 +1,5 @@
 """
-Publisher Agent
-发布内容到小红书平台
-使用 MCP 客户端调用小红书发布功能
+发布工具 - 发布内容到小红书
 """
 
 import json
@@ -11,9 +9,8 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 
 from utils.mcp_client import XiaohongshuMCPClient, XiaohongshuMCPError
-from config import MCPConfig, PathConfig
+from config import Config
 
-# 配置日志
 logger = logging.getLogger(__name__)
 
 
@@ -63,11 +60,12 @@ def publish_to_xiaohongshu(
             }, ensure_ascii=False)
         
         # 2. 初始化 MCP 客户端
-        mcp_url = MCPConfig.SERVERS["xiaohongshu"]["url"]
-        timeout = MCPConfig.SERVERS["xiaohongshu"]["timeout"]
-        
-        logger.info(f"初始化MCP客户端，地址: {mcp_url}")
-        client = XiaohongshuMCPClient(base_url=mcp_url, timeout=timeout)
+        mcp_config = Config.SERVERS["xiaohongshu"]
+        logger.info(f"初始化MCP客户端: {mcp_config['url']}")
+        client = XiaohongshuMCPClient(
+            base_url=mcp_config['url'],
+            timeout=mcp_config['timeout']
+        )
         
         try:
             # 3. 检查登录状态
@@ -247,7 +245,7 @@ def _process_image_paths(images: List[str]) -> List[str]:
                 continue
             
             # 2. 图片输出目录
-            abs_path = PathConfig.IMAGES_DIR / img_path_obj
+            abs_path = Config.IMAGES_DIR / img_path_obj
             if abs_path.exists():
                 processed.append(str(abs_path.absolute()))
                 continue
