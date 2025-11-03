@@ -8,7 +8,16 @@ from .llm_client import LLMClient, get_client
 from .mcp_client import XiaohongshuMCPClient
 from .draft_manager import DraftManager, get_draft_manager
 from .logger_config import setup_logging, get_logger
-from .model_router import ModelRouter, create_router, get_router
+from .model_router import ModelRouter, TaskType, QualityLevel
+from .common_tools import (
+    parse_llm_json,
+    create_agent_silent,
+    handle_tool_errors,
+    get_cache,
+    set_cache,
+    clear_cache,
+    make_cache_key
+)
 from .response_utils import (
     ToolResponse,
     create_success_response,
@@ -19,7 +28,6 @@ from .response_utils import (
     get_response_error
 )
 from .parallel_executor import ParallelExecutor, Task, TaskResult, parallel_review
-from .cache_manager import CacheManager, get_cache_manager, cache_key
 
 __all__ = [
     # LLM
@@ -39,8 +47,17 @@ __all__ = [
     
     # Model Router
     'ModelRouter',
-    'create_router',
-    'get_router',
+    'TaskType',
+    'QualityLevel',
+    
+    # Common Tools
+    'parse_llm_json',
+    'create_agent_silent',
+    'handle_tool_errors',
+    'get_cache',
+    'set_cache',
+    'clear_cache',
+    'make_cache_key',
     
     # Response Utils
     'ToolResponse',
@@ -55,8 +72,5 @@ __all__ = [
     'ParallelExecutor',
     'Task',
     'TaskResult',
-    'parallel_review',
-    'CacheManager',
-    'get_cache_manager',
-    'cache_key'
+    'parallel_review'
 ]

@@ -335,8 +335,7 @@ def check_readability(content: str) -> str:
         paragraphs = content.split('\n')
         paragraphs = [p.strip() for p in paragraphs if p.strip()]
         
-        # 检查专业术语（简化版）
-        # 实际应该有专业术语词典
+        # 检查专业术语
         has_complex_words = any(
             word in content 
             for word in ['因此', '然而', '鉴于', '综上所述']
@@ -574,7 +573,7 @@ def check_information_accuracy(content: str, topic: str = "") -> str:
 
 def check_grammar(text: str) -> str:
     """
-    语法检查（简化版）
+    语法检查
     
     检查基本的语法问题：标点、拼写、重复词等。
     

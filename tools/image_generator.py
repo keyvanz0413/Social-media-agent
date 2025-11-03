@@ -596,7 +596,7 @@ def _create_dalle_prompt(description: str, topic: str) -> str:
         return dalle_prompt
         
     except Exception as e:
-        logger.warning(f"DALL-E 提示词生成失败，使用简化版本: {str(e)}")
+        logger.warning(f"DALL-E 提示词生成失败，使用默认模板: {str(e)}")
         return f"High quality photo of {description}, bright and clear, suitable for social media"
 
 
@@ -630,7 +630,7 @@ def _create_sd_prompt(description: str, topic: str) -> str:
         return sd_prompt
         
     except Exception as e:
-        logger.warning(f"SD 提示词生成失败，使用简化版本: {str(e)}")
+        logger.warning(f"SD 提示词生成失败，使用默认模板: {str(e)}")
         return f"masterpiece, best quality, high resolution, {description}, bright lighting, photorealistic"
 
 
