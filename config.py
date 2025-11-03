@@ -99,15 +99,19 @@ class ModelConfig:
         "claude-3.5-sonnet": "gpt-4o",  # 兼容旧配置
         "qwen2.5-vl": "gpt-4o-vision",
         "gpt-4o-mini": None,  # 已经是最便宜的，无法继续降级
+        # Qwen3 降级策略
+        "qwen-max-latest": "qwen-plus",     # 最强版 → 平衡版
+        "qwen-plus": "qwen-turbo",          # 平衡版 → 快速版
+        "qwen-turbo": "gpt-4o-mini",        # 快速版 → 备用gpt-4o-mini
     }
     
     # 任务类型到模型的映射
     # 支持三种质量级别：fast（快速）、balanced（平衡）、high（高质量）
     TASK_MODEL_MAPPING = {
         "analysis": {
-            "fast": "gpt-4o-mini",
-            "balanced": "gpt-4o",
-            "high": "gpt-4o"
+            "fast": "qwen-turbo",           # Qwen3 快速模型
+            "balanced": "qwen-plus",         # Qwen3 平衡模型（推荐）
+            "high": "qwen-max-latest"        # Qwen3 最强模型
         },
         "creation": {
             "fast": "gpt-4o-mini",
@@ -172,6 +176,28 @@ class ModelConfig:
             "provider": "openai",
             "description": "GPT-4o 视觉版本",
             "strengths": ["图片理解", "视觉分析"],
+            "cost_level": "high",
+            "context_window": 128000
+        },
+        # Qwen3 系列模型
+        "qwen-turbo": {
+            "provider": "openai",  # 通过OpenAI兼容接口调用
+            "description": "Qwen3 Turbo - 快速响应版本",
+            "strengths": ["快速响应", "成本低", "中文理解强"],
+            "cost_level": "low",
+            "context_window": 32000
+        },
+        "qwen-plus": {
+            "provider": "openai",  # 通过OpenAI兼容接口调用
+            "description": "Qwen3 Plus - 平衡版本",
+            "strengths": ["性价比高", "中文理解优秀", "分析能力强"],
+            "cost_level": "medium",
+            "context_window": 128000
+        },
+        "qwen-max-latest": {
+            "provider": "openai",  # 通过OpenAI兼容接口调用
+            "description": "Qwen3 Max Latest - 最强版本",
+            "strengths": ["深度推理", "复杂分析", "中文能力顶尖"],
             "cost_level": "high",
             "context_window": 128000
         }

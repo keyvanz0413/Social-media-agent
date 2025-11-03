@@ -110,12 +110,21 @@ def generate_images_for_content(
         if not images:
             return json.dumps({
                 "success": False,
-                "error": "未能生成任何图片",
+                "error": "未能生成任何图片，可能原因：内容违规、API限制或网络问题",
                 "message": "图片生成失败",
-                "method": method
+                "method": method,
+                "requested_count": actual_count,
+                "generated_count": 0
             }, ensure_ascii=False)
         
-        logger.info(f"成功生成 {len(images)} 张图片")
+        # 判断是否部分成功
+        success_rate = len(images) / actual_count
+        if success_rate < 1.0:
+            logger.warning(f"⚠️  部分图片生成失败：成功 {len(images)}/{actual_count} 张")
+            message = f"部分成功：生成了 {len(images)}/{actual_count} 张图片"
+        else:
+            logger.info(f"✅ 成功生成 {len(images)} 张图片")
+            message = f"成功生成 {len(images)} 张图片"
         
         return json.dumps({
             "success": True,
@@ -123,7 +132,9 @@ def generate_images_for_content(
             "topic": topic,
             "method": method,
             "count": len(images),
-            "message": f"成功生成 {len(images)} 张图片"
+            "requested_count": actual_count,
+            "success_rate": f"{success_rate:.0%}",
+            "message": message
         }, ensure_ascii=False, indent=2)
         
     except Exception as e:
@@ -371,9 +382,12 @@ def _generate_from_dalle(
     
     try:
         from openai import OpenAI
+        # 配置客户端：减少重试次数和超时时间
         client = OpenAI(
             api_key=ModelConfig.OPENAI_API_KEY,
-            base_url=ModelConfig.OPENAI_BASE_URL
+            base_url=ModelConfig.OPENAI_BASE_URL,
+            max_retries=1,  # 最多重试1次（默认是2次）
+            timeout=60.0     # 60秒超时
         )
     except ImportError:
         logger.error("openai 库未安装，无法使用 DALL-E")
@@ -423,7 +437,20 @@ def _generate_from_dalle(
             })
             
         except Exception as e:
-            logger.error(f"生成第 {idx + 1} 张图片失败: {str(e)}", exc_info=True)
+            error_str = str(e)
+            
+            # 识别错误类型并给出友好提示
+            if "content_policy_violation" in error_str or "safety system" in error_str:
+                logger.warning(f"⚠️  第 {idx + 1} 张图片被安全系统拒绝（内容违规），已跳过")
+                logger.debug(f"被拒绝的prompt: {prompt}")
+            elif "rate_limit" in error_str or "429" in error_str:
+                logger.warning(f"⚠️  第 {idx + 1} 张图片生成受限（API速率限制），已跳过")
+            elif "timeout" in error_str.lower():
+                logger.warning(f"⚠️  第 {idx + 1} 张图片生成超时，已跳过")
+            else:
+                logger.error(f"❌ 生成第 {idx + 1} 张图片失败: {str(e)}")
+            
+            # 无论什么错误，都继续生成下一张
             continue
     
     return images
