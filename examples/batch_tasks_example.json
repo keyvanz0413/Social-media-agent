@@ -1,0 +1,28 @@
+[
+  {
+    "task": "发表一篇关于悉尼旅游的帖子",
+    "priority": 1,
+    "category": "travel"
+  },
+  {
+    "task": "创作一篇关于北海道滑雪的攻略，参考8篇爆款帖子",
+    "priority": 2,
+    "category": "travel"
+  },
+  {
+    "task": "写一篇巴厘岛度假的分享，只看3篇就好",
+    "priority": 1,
+    "category": "travel"
+  },
+  {
+    "task": "分享一道川菜菜谱",
+    "priority": 3,
+    "category": "food"
+  },
+  {
+    "task": "推荐上海必吃的10家餐厅",
+    "priority": 2,
+    "category": "food"
+  }
+]
+

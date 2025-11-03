@@ -194,6 +194,140 @@ class ModelConfig:
             config['base_url'] = cls.OPENAI_BASE_URL
         
         return config
+    
+    @classmethod
+    def validate_config(cls) -> Dict[str, Any]:
+        """
+        验证配置完整性和正确性
+        
+        Returns:
+            验证结果字典，包含 success, errors, warnings
+        """
+        result = {
+            "success": True,
+            "errors": [],
+            "warnings": []
+        }
+        
+        # 1. 检查至少有一个LLM API配置
+        has_llm = False
+        
+        if cls.OPENAI_API_KEY:
+            has_llm = True
+            # 验证API Key格式
+            if not cls.OPENAI_API_KEY.startswith(('sk-', 'sess-')):
+                result["warnings"].append(
+                    "OpenAI API Key 格式可能不正确（通常以 sk- 或 sess- 开头）"
+                )
+        
+        if cls.ANTHROPIC_API_KEY:
+            has_llm = True
+            if not cls.ANTHROPIC_API_KEY.startswith('sk-'):
+                result["warnings"].append(
+                    "Anthropic API Key 格式可能不正确（通常以 sk- 开头）"
+                )
+        
+        if cls.OLLAMA_BASE_URL:
+            has_llm = True
+        
+        if not has_llm:
+            result["errors"].append(
+                "至少需要配置一个 LLM API（OpenAI、Anthropic 或 Ollama）"
+            )
+            result["success"] = False
+        
+        # 2. 检查关键模型配置
+        required_models = ["reasoning", "creative", "fast"]
+        for model_type in required_models:
+            if model_type not in cls.MODELS:
+                result["errors"].append(f"缺少关键模型配置: {model_type}")
+                result["success"] = False
+        
+        # 3. 检查降级链完整性
+        for model, fallback in cls.FALLBACK_MODELS.items():
+            if fallback and fallback not in cls.MODEL_INFO:
+                result["warnings"].append(
+                    f"模型 {model} 的降级模型 {fallback} 未在 MODEL_INFO 中定义"
+                )
+        
+        # 4. 检查任务模型映射
+        for task_type, quality_models in cls.TASK_MODEL_MAPPING.items():
+            for quality_level, model_name in quality_models.items():
+                if model_name not in cls.MODEL_INFO:
+                    result["warnings"].append(
+                        f"任务 {task_type}/{quality_level} 配置的模型 {model_name} "
+                        f"未在 MODEL_INFO 中定义"
+                    )
+        
+        return result
+    
+    @classmethod
+    def check_model_available(cls, model_name: str) -> bool:
+        """
+        检查模型是否可用
+        
+        Args:
+            model_name: 模型名称
+        
+        Returns:
+            是否可用
+        """
+        # 检查模型是否在 MODEL_INFO 中
+        if model_name not in cls.MODEL_INFO:
+            return False
+        
+        model_info = cls.MODEL_INFO[model_name]
+        provider = model_info.get("provider")
+        
+        # 根据提供商检查API配置
+        if provider == "openai":
+            return cls.OPENAI_API_KEY is not None
+        elif provider == "anthropic":
+            return cls.ANTHROPIC_API_KEY is not None
+        elif provider == "ollama":
+            return cls.OLLAMA_BASE_URL is not None
+        elif provider == "custom":
+            # 自定义模型需要至少一个API配置
+            return cls.OPENAI_API_KEY is not None or cls.ANTHROPIC_API_KEY is not None
+        
+        return False
+    
+    @classmethod
+    def get_available_models(cls) -> Dict[str, bool]:
+        """
+        获取所有模型的可用性状态
+        
+        Returns:
+            模型名称到可用性的映射
+        """
+        return {
+            model_name: cls.check_model_available(model_name)
+            for model_name in cls.MODEL_INFO.keys()
+        }
+    
+    @classmethod
+    def print_config_summary(cls):
+        """打印配置摘要（用于调试）"""
+        print("\n" + "=" * 60)
+        print("📋 模型配置摘要")
+        print("=" * 60)
+        
+        # API配置
+        print("\n🔑 API配置:")
+        print(f"  OpenAI API: {'✅ 已配置' if cls.OPENAI_API_KEY else '❌ 未配置'}")
+        if cls.OPENAI_BASE_URL:
+            print(f"  Base URL: {cls.OPENAI_BASE_URL}")
+        print(f"  Anthropic API: {'✅ 已配置' if cls.ANTHROPIC_API_KEY else '❌ 未配置'}")
+        print(f"  Ollama: {'✅ 已配置' if cls.OLLAMA_BASE_URL else '❌ 未配置'}")
+        
+        # 模型可用性
+        print("\n🤖 模型可用性:")
+        available_models = cls.get_available_models()
+        for model_name, is_available in available_models.items():
+            status = "✅" if is_available else "❌"
+            print(f"  {status} {model_name}")
+        
+        print("\n" + "=" * 60 + "\n")
 
 
 # ========== MCP 服务器配置 ==========

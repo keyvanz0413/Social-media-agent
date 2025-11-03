@@ -23,6 +23,8 @@ requests>=2.31.0
 tenacity>=8.2.0  # 重试机制
 cachetools>=5.3.0  # 缓存
 loguru>=0.7.0  # 高级日志
+psutil>=5.9.0  # 系统资源监控
+tqdm>=4.65.0  # 进度条
 
 # ========== Testing (Optional) ==========
 pytest>=7.4.0

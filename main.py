@@ -266,11 +266,218 @@ def run_batch_mode(task_file: str):
     """
     批处理模式 - 从文件读取任务列表
     
+    支持的文件格式：
+    - JSON: [{"task": "...", "priority": 1}, ...]
+    - TXT: 每行一个任务
+    
     Args:
         task_file: 任务文件路径
     """
-    # TODO: 实现批处理逻辑
-    pass
+    from agent import create_coordinator_agent
+    from utils.draft_manager import get_draft_manager
+    from datetime import datetime
+    import json
+    from pathlib import Path
+    
+    print(f"\n📋 批处理模式")
+    print(f"任务文件: {task_file}\n")
+    
+    # 1. 读取任务列表
+    try:
+        tasks = _load_tasks_from_file(task_file)
+        print(f"✅ 成功加载 {len(tasks)} 个任务\n")
+    except Exception as e:
+        print(f"❌ 加载任务文件失败: {str(e)}")
+        return False
+    
+    if not tasks:
+        print("❌ 任务列表为空")
+        return False
+    
+    # 2. 创建 Coordinator Agent
+    try:
+        import warnings
+        warnings.filterwarnings('ignore', category=UserWarning, module='connectonion')
+        coordinator = create_coordinator_agent()
+        warnings.filterwarnings('default')
+    except Exception as e:
+        print(f"❌ 初始化 Agent 失败: {str(e)}")
+        return False
+    
+    # 3. 执行批处理
+    print("=" * 70)
+    print("开始批处理执行...")
+    print("=" * 70 + "\n")
+    
+    results = []
+    success_count = 0
+    failed_count = 0
+    
+    # 使用进度条
+    try:
+        from tqdm import tqdm
+        use_tqdm = True
+    except ImportError:
+        use_tqdm = False
+        print("💡 安装 tqdm 可显示进度条: pip install tqdm\n")
+    
+    task_iterator = tqdm(tasks, desc="处理进度") if use_tqdm else tasks
+    
+    for i, task_info in enumerate(task_iterator, 1):
+        task = task_info.get('task') if isinstance(task_info, dict) else task_info
+        
+        if not use_tqdm:
+            print(f"\n[{i}/{len(tasks)}] 任务: {task[:50]}...")
+        
+        try:
+            # 执行任务
+            result = coordinator.input(task)
+            
+            # 记录结果
+            results.append({
+                "index": i,
+                "task": task,
+                "status": "success",
+                "result": result,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            success_count += 1
+            
+            if not use_tqdm:
+                print(f"  ✅ 成功")
+        
+        except KeyboardInterrupt:
+            print("\n\n⚠️  用户中断批处理")
+            break
+        
+        except Exception as e:
+            # 记录错误
+            results.append({
+                "index": i,
+                "task": task,
+                "status": "failed",
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            failed_count += 1
+            
+            if not use_tqdm:
+                print(f"  ❌ 失败: {str(e)}")
+            
+            logger.error(f"任务 {i} 执行失败: {str(e)}", exc_info=True)
+    
+    # 4. 生成报告
+    print("\n" + "=" * 70)
+    print("批处理完成")
+    print("=" * 70)
+    print(f"\n📊 执行统计:")
+    print(f"  总任务数: {len(tasks)}")
+    print(f"  ✅ 成功: {success_count}")
+    print(f"  ❌ 失败: {failed_count}")
+    print(f"  成功率: {success_count/len(tasks)*100:.1f}%\n")
+    
+    # 5. 保存报告
+    try:
+        report_path = _save_batch_report(results, task_file)
+        print(f"📄 详细报告已保存: {report_path}\n")
+    except Exception as e:
+        print(f"⚠️  保存报告失败: {str(e)}\n")
+    
+    return success_count > 0
+
+
+def _load_tasks_from_file(task_file: str) -> list:
+    """
+    从文件加载任务列表
+    
+    Args:
+        task_file: 任务文件路径
+    
+    Returns:
+        任务列表
+    """
+    import json
+    from pathlib import Path
+    
+    file_path = Path(task_file)
+    
+    if not file_path.exists():
+        raise FileNotFoundError(f"任务文件不存在: {task_file}")
+    
+    # 根据文件扩展名判断格式
+    if file_path.suffix.lower() == '.json':
+        # JSON格式
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # 支持两种格式
+        # 1. [{"task": "..."}, ...]
+        # 2. ["task1", "task2", ...]
+        if isinstance(data, list):
+            return data
+        else:
+            raise ValueError("JSON文件必须包含任务列表数组")
+    
+    elif file_path.suffix.lower() in ['.txt', '.md']:
+        # 文本格式，每行一个任务
+        with open(file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        
+        # 过滤空行和注释
+        tasks = []
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                tasks.append(line)
+        
+        return tasks
+    
+    else:
+        raise ValueError(f"不支持的文件格式: {file_path.suffix}")
+
+
+def _save_batch_report(results: list, task_file: str) -> str:
+    """
+    保存批处理报告
+    
+    Args:
+        results: 结果列表
+        task_file: 原始任务文件路径
+    
+    Returns:
+        报告文件路径
+    """
+    import json
+    from pathlib import Path
+    from datetime import datetime
+    
+    # 生成报告文件名
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    task_file_name = Path(task_file).stem
+    report_file = PathConfig.OUTPUTS_DIR / "logs" / f"batch_report_{task_file_name}_{timestamp}.json"
+    
+    # 确保目录存在
+    report_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    # 生成报告
+    report = {
+        "task_file": str(task_file),
+        "timestamp": datetime.now().isoformat(),
+        "summary": {
+            "total": len(results),
+            "success": sum(1 for r in results if r.get("status") == "success"),
+            "failed": sum(1 for r in results if r.get("status") == "failed")
+        },
+        "results": results
+    }
+    
+    # 保存报告
+    with open(report_file, 'w', encoding='utf-8') as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+    
+    return str(report_file)
 
 
 def run_single_task(task: str, save_draft: bool = True):
@@ -438,7 +645,47 @@ def main():
     
     # 仅检查模式
     if args.check:
-        print("✅ 所有检查通过，系统可以正常运行")
+        print("\n" + "=" * 70)
+        print("🔍 系统配置检查")
+        print("=" * 70 + "\n")
+        
+        # 配置验证
+        from config import ModelConfig
+        validation_result = ModelConfig.validate_config()
+        
+        if validation_result["success"]:
+            print("✅ 配置验证通过\n")
+        else:
+            print("❌ 配置验证失败\n")
+            for error in validation_result["errors"]:
+                print(f"  ❌ {error}")
+            print()
+        
+        if validation_result["warnings"]:
+            print("⚠️  警告:")
+            for warning in validation_result["warnings"]:
+                print(f"  ⚠️  {warning}")
+            print()
+        
+        # 打印配置摘要
+        ModelConfig.print_config_summary()
+        
+        # MCP连接检查
+        if not args.skip_mcp_check:
+            print("🔌 MCP服务检查:")
+            if validate_mcp_connection():
+                print("  ✅ MCP服务正常\n")
+            else:
+                print("  ❌ MCP服务未连接\n")
+        
+        print("=" * 70)
+        
+        if validation_result["success"]:
+            print("\n✅ 所有检查通过，系统可以正常运行\n")
+        else:
+            print("\n❌ 存在配置问题，请修复后再运行\n")
+            sys.exit(1)
+        
         return
     
     # 根据模式运行
