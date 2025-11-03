@@ -88,7 +88,7 @@ def _evaluate_engagement_direct(content_data: dict) -> dict:
         prompt=prompt,
         model_name=model,
         temperature=0.3,
-        response_format="json"
+        response_format={"type": "json_object"}
     )
     
     review_data = json.loads(response)

@@ -97,7 +97,7 @@ def review_quality(content_data: dict, quality_level: str = "balanced") -> str:
             prompt=prompt,
             model_name=model,
             temperature=0.2,
-            response_format="json"
+            response_format={"type": "json_object"}
         )
         
         review_data = json.loads(response)

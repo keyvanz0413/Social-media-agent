@@ -67,7 +67,7 @@ def agent_c_create_content(
         logger.info(f"选择模型: {model_name} (质量级别: {quality.value})")
         
         # 5. 获取 LLM 配置
-        creator_config = AgentConfig.SUB_AGENTS["content_creator"]
+        creator_config = AgentConfig.AGENT_CONFIGS["content_creator"]
         temperature = creator_config["temperature"]
         max_tokens = creator_config["max_tokens"]
         
