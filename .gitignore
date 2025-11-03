@@ -62,11 +62,10 @@ outputs/
 generated/
 
 # Markdown files (except in specific directories)
+# 注意：我们保留 docs/ 和部分 .md 文件，只忽略临时生成的文档
 *.md
 !prompts/*.md
-!docs/*.md
+!docs/**/*.md
 !README.md
-
-# Documentation and tests
-docs/
-tests/
+!PROJECT_SUMMARY.md
+!CHANGELOG.md
