@@ -73,7 +73,7 @@ OPENAI_API_KEY=你的第三方平台API_KEY
 OPENAI_BASE_URL=你的第三方平台URL
 ```
 
-**注意**：项目已配置顶级模型（Claude Opus 4.1, Claude 3.7, GPT-5 Mini 等），需要使用支持这些模型的第三方平台。
+**注意**：项目已配置模型（Claude Opus 4.1, Claude 3.7, GPT-5 Mini 等），需要使用支持这些模型的第三方平台。
 
 ### 3. 使用
 

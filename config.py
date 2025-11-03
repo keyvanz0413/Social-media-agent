@@ -169,6 +169,7 @@ PathConfig = Config
 LogConfig = Config
 MCPConfig = Config
 DevConfig = Config
+BusinessConfig = Config  # 业务配置别名
 
 
 # 导出
@@ -180,5 +181,6 @@ __all__ = [
     'LogConfig',
     'MCPConfig',
     'DevConfig',
+    'BusinessConfig',
 ]
 

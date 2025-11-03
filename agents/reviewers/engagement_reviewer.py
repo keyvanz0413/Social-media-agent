@@ -1,106 +1,108 @@
 """
-Engagement Reviewer Agent
-互动潜力评审 Agent
+Engagement Reviewer（简化版）
+互动潜力评审
 
 职责：
 - 评估内容的点赞、收藏、评论潜力
 - 分析标题吸引力和情感触发点
-- 对比类似爆款帖子
 - 提供具体的优化建议
-
-工具：
-- search_similar_posts: 搜索类似爆款帖子
-- analyze_title_patterns: 分析标题规律
-- check_emotional_triggers: 检查情感触发点
-- get_engagement_stats: 获取同类内容互动数据
 
 输出：
 - score: 互动潜力评分 (0-10)
 - strengths: 优势列表
 - weaknesses: 不足列表
 - suggestions: 优化建议列表
-- confidence: 评分置信度
+
+注意：已简化，移除了对外部工具的依赖
 """
 
 import logging
 import json
-import warnings
-from pathlib import Path
 
-try:
-    from connectonion import Agent
-except ImportError:
-    Agent = None
-    logging.warning("ConnectOnion 未安装，无法使用 Engagement Reviewer Agent")
-
-# 导入工具函数
-from tools.review_tools import (
-    search_similar_posts,
-    analyze_title_patterns,
-    check_emotional_triggers,
-    get_engagement_stats
-)
-
-from config import AgentConfig, ModelConfig
+from utils.llm_client import LLMClient
+from utils.model_router import ModelRouter, TaskType, QualityLevel
+from utils.response_utils import create_success_response, create_error_response
 
 logger = logging.getLogger(__name__)
 
 
-def create_engagement_reviewer_agent():
+def _evaluate_engagement_direct(content_data: dict) -> dict:
     """
-    创建互动潜力评审 Agent
+    直接使用LLM评估互动潜力（不使用Agent）
     
-    Returns:
-        配置好的 Engagement Reviewer Agent 实例
+    Args:
+        content_data: 内容数据
         
-    Example:
-        >>> agent = create_engagement_reviewer_agent()
-        >>> result = agent.input('''请评审这篇帖子的互动潜力：
-        ... 标题：澳洲旅游攻略｜3天2夜悉尼深度游
-        ... 正文：分享我的悉尼之旅...
-        ... 话题：澳洲旅游
-        ... ''')
-        >>> review = json.loads(result)
-        >>> print(f"评分: {review['score']}/10")
+    Returns:
+        评审结果字典
     """
-    if Agent is None:
-        raise ImportError(
-            "ConnectOnion 框架未安装。请运行: pip install connectonion"
-        )
+    title = content_data.get('title', '')
+    content = content_data.get('content', '')
     
-    # 1. 加载系统提示词
-    system_prompt = _load_system_prompt()
+    prompt = f"""你是一位资深的社交媒体内容评审专家，专注于评估小红书内容的互动潜力（点赞、收藏、评论）。
+
+请评审以下内容：
+
+【标题】
+{title}
+
+【正文】
+{content[:800]}{"..." if len(content) > 800 else ""}
+
+评分标准（总分 0-10）：
+1. 标题吸引力（3分）
+   - 是否有数字（如"3天2夜"、"10个"）
+   - 是否有疑问式（如"你知道吗？"）
+   - 是否有情感词（如"绝了"、"太爱了"）
+   - 是否有符号（感叹号、emoji）
+
+2. 情感触发（3分）
+   - 能否引发共鸣（"我也是"、"太真实了"）
+   - 能否激发好奇（"原来"、"竟然"）
+   - 是否有实用价值（"方法"、"攻略"）
+   - 是否有争议点（"但是"、"其实"）
+
+3. 实用价值（2分）
+   - 是否提供具体可行的信息
+   - 用户能否直接应用
+
+4. 互动引导（2分）
+   - 是否引导点赞、收藏、评论
+   - 是否有提问、征集意见
+
+输出 JSON 格式（不要包含任何其他文字）：
+{{
+    "score": 8.5,
+    "strengths": ["标题包含数字", "有情感共鸣点", "提供实用攻略"],
+    "weaknesses": ["缺少互动引导", "情感触发不够强"],
+    "suggestions": ["在标题中加入疑问式", "在结尾加上提问引导评论"]
+}}
+"""
     
-    # 2. 注册工具函数
-    tools = [
-        search_similar_posts,
-        analyze_title_patterns,
-        check_emotional_triggers,
-        get_engagement_stats
-    ]
+    # 调用 LLM
+    router = ModelRouter()
+    model = router.select_model(TaskType.REVIEW, QualityLevel.BALANCED)
+    client = LLMClient()
     
-    # 3. 获取配置
-    agent_config = AgentConfig.SUB_AGENTS.get("reviewer_engagement", {})
-    model_name = agent_config.get("model", "gpt-4o-mini")
-    # 注意：ConnectOnion Agent 不支持 temperature 参数
-    # temperature 由模型本身控制
+    response = client.call_llm(
+        prompt=prompt,
+        model_name=model,
+        temperature=0.3,
+        response_format="json"
+    )
     
-    # 4. 创建 Agent
-    logger.info(f"创建 Engagement Reviewer Agent，模型: {model_name}")
+    review_data = json.loads(response)
     
-    # 抑制 connectonion 的 system_prompt 警告输出
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=UserWarning, module="connectonion")
-        agent = Agent(
-            name="engagement_reviewer",
-            system_prompt=system_prompt,
-            tools=tools,
-            model=model_name,
-            max_iterations=10  # 评审通常不需要太多迭代
-        )
+    # 验证必需字段
+    review_data.setdefault('score', 5.0)
+    review_data.setdefault('strengths', [])
+    review_data.setdefault('weaknesses', [])
+    review_data.setdefault('suggestions', [])
     
-    logger.info("Engagement Reviewer Agent 创建成功")
-    return agent
+    # 确保评分在范围内
+    review_data['score'] = max(0, min(10, review_data['score']))
+    
+    return review_data
 
 
 def _load_system_prompt() -> str:
@@ -253,9 +255,7 @@ def _get_builtin_system_prompt() -> str:
 
 def review_engagement(content_data: dict) -> str:
     """
-    便捷函数：使用 Agent 评审互动潜力
-    
-    这是一个封装函数，方便其他模块调用。
+    评审互动潜力
     
     Args:
         content_data: 内容数据，包含：
@@ -276,55 +276,24 @@ def review_engagement(content_data: dict) -> str:
         >>> print(review['score'])
     """
     try:
-        # 创建 Agent
-        agent = create_engagement_reviewer_agent()
+        logger.info("开始互动潜力评审")
         
-        # 构建输入
-        user_input = f"""请评审这篇小红书内容的互动潜力：
-
-标题：{content_data.get('title', '')}
-
-正文：
-{content_data.get('content', '')[:500]}{"..." if len(content_data.get('content', '')) > 500 else ""}
-
-话题：{content_data.get('topic', '未指定')}
-
-请使用你的工具进行深度分析，给出详细的评审结果。"""
+        # 直接使用LLM评估
+        review_data = _evaluate_engagement_direct(content_data)
         
-        # 调用 Agent
-        result = agent.input(user_input)
-        
-        # Agent 应该返回 JSON，但为了保险起见，验证一下
-        try:
-            json.loads(result)
-            return result
-        except json.JSONDecodeError:
-            # 如果 Agent 返回的不是 JSON，尝试提取
-            logger.warning("Agent 返回的不是纯JSON，尝试提取")
-            # 简单提取逻辑（实际应该更复杂）
-            import re
-            json_match = re.search(r'\{.*\}', result, re.DOTALL)
-            if json_match:
-                return json_match.group(0)
-            else:
-                # 返回错误
-                return json.dumps({
-                    "success": False,
-                    "error": "Agent 返回格式错误",
-                    "raw_output": result
-                })
+        logger.info(f"互动潜力评审完成: {review_data['score']}/10")
+        return create_success_response(
+            data=review_data,
+            message=f"互动潜力评分: {review_data['score']}/10"
+        )
         
     except Exception as e:
         logger.error(f"Engagement 评审失败: {str(e)}", exc_info=True)
-        return json.dumps({
-            "success": False,
-            "error": str(e)
-        })
+        return create_error_response(f"互动潜力评审失败: {str(e)}")
 
 
 # 导出
 __all__ = [
-    "create_engagement_reviewer_agent",
     "review_engagement"
 ]
 

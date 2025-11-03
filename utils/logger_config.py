@@ -77,11 +77,11 @@ class LoggerManager:
             return
         
         # 使用配置或参数
-        log_level = level or LogConfig.LEVEL
-        log_file = log_file or LogConfig.FILE_PATH
-        console_enabled = console_enabled if console_enabled is not None else LogConfig.CONSOLE_ENABLED
-        file_enabled = file_enabled if file_enabled is not None else LogConfig.FILE_ENABLED
-        colorize = colorize if colorize is not None else LogConfig.CONSOLE_COLORIZE
+        log_level = level or LogConfig.LOG_LEVEL
+        log_file = log_file or (LogConfig.LOGS_DIR / "agent.log")
+        console_enabled = console_enabled if console_enabled is not None else LogConfig.LOG_CONSOLE_ENABLED
+        file_enabled = file_enabled if file_enabled is not None else LogConfig.LOG_FILE_ENABLED
+        colorize = colorize if colorize is not None else LogConfig.LOG_CONSOLE_COLORIZE
         
         # 确保日志目录存在
         if file_enabled and log_file:
@@ -103,13 +103,13 @@ class LoggerManager:
                 # 使用带颜色的格式化器
                 console_formatter = ColoredFormatter(
                     fmt='%(levelname)s %(name)s - %(message)s',
-                    datefmt=LogConfig.DATE_FORMAT
+                    datefmt=LogConfig.LOG_DATE_FORMAT
                 )
             else:
                 # 普通格式化器
                 console_formatter = logging.Formatter(
                     fmt='%(levelname)s %(name)s - %(message)s',
-                    datefmt=LogConfig.DATE_FORMAT
+                    datefmt=LogConfig.LOG_DATE_FORMAT
                 )
             
             console_handler.setFormatter(console_formatter)
@@ -119,16 +119,16 @@ class LoggerManager:
         if file_enabled and log_file:
             file_handler = RotatingFileHandler(
                 filename=str(log_file),
-                maxBytes=LogConfig.FILE_MAX_BYTES,
-                backupCount=LogConfig.FILE_BACKUP_COUNT,
+                maxBytes=LogConfig.LOG_FILE_MAX_BYTES,
+                backupCount=LogConfig.LOG_FILE_BACKUP_COUNT,
                 encoding='utf-8'
             )
             file_handler.setLevel(getattr(logging, log_level.upper()))
             
             # 文件日志使用详细格式
             file_formatter = logging.Formatter(
-                fmt=LogConfig.FORMAT,
-                datefmt=LogConfig.DATE_FORMAT
+                fmt=LogConfig.LOG_FORMAT,
+                datefmt=LogConfig.LOG_DATE_FORMAT
             )
             file_handler.setFormatter(file_formatter)
             root_logger.addHandler(file_handler)
