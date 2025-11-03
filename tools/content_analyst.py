@@ -28,14 +28,16 @@ def agent_a_analyze_xiaohongshu(
     分析小红书平台上指定关键词的热门内容
     
     Args:
-        keyword: 搜索关键词
-        limit: 返回笔记数量，默认5条
+        keyword: 搜索关键词（必需）
+        limit: 参考帖子数量（可选，默认5条，建议3-10条）
+               - 用户可以自由指定：如"参考10篇"、"只看3篇"等
+               - 更多帖子 = 更全面的分析，但耗时更长
         quality_level: 质量级别（fast/balanced/high），默认 balanced
         
     Returns:
         JSON格式的分析结果，包含：
         - keyword: 搜索关键词
-        - total_analyzed: 分析的笔记数量
+        - total_analyzed: 实际分析的笔记数量
         - title_patterns: 标题模式列表
         - content_structure: 内容结构（开头、正文、结尾）
         - user_needs: 用户需求列表
@@ -44,9 +46,14 @@ def agent_a_analyze_xiaohongshu(
         - creation_suggestions: 创作建议列表
         
     Example:
-        >>> result = agent_a_analyze_xiaohongshu("澳洲旅游", limit=5)
+        >>> # 使用默认数量（5篇）
+        >>> result = agent_a_analyze_xiaohongshu("澳洲旅游")
+        >>> 
+        >>> # 用户指定数量
+        >>> result = agent_a_analyze_xiaohongshu("澳洲旅游", limit=10)
+        >>> 
         >>> data = json.loads(result)
-        >>> print(data["title_patterns"])
+        >>> print(f"分析了 {data['data']['total_analyzed']} 篇帖子")
     """
     try:
         # 1. 收集笔记数据
