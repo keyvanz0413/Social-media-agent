@@ -419,3 +419,10 @@ def _parse_llm_response(
             }
         }
 
+
+# 向后兼容：为旧名称添加别名
+agent_c_create_content = create_content
+
+# 导出
+__all__ = ['create_content', 'agent_c_create_content']
+

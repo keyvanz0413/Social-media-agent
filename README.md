@@ -4,6 +4,8 @@
 
 **版本**: v1.0 (LangChain 1.0) | **状态**: ✅ 生产就绪 | **框架**: LangChain + LangGraph
 
+![Agent Tests CI](https://github.com/yourusername/Social-media-agent/actions/workflows/agent-tests.yml/badge.svg)
+
 ---
 
 ## 📑 目录
@@ -15,6 +17,7 @@
   - [自定义参考数量](#-自定义参考数量功能)
   - [单任务模式](#方式-2单任务模式)
   - [Python API](#方式-3python-api)
+- [测试和CI/CD](#-测试和cicd)
 - [性能表现](#-性能表现)
 - [架构设计](#️-架构设计)
 - [版本更新](#-版本更新)
@@ -224,6 +227,54 @@ analysis = agent_a_analyze_xiaohongshu("北海道旅游", limit=3)
 
 ---
 
+## 🧪 测试和CI/CD
+
+### 快速测试
+
+```bash
+# 快速烟雾测试（推荐，日常开发使用）
+./scripts/quick_test.sh        # macOS/Linux
+scripts\quick_test.bat          # Windows
+```
+
+### 完整测试
+
+```bash
+# 运行完整的CI/CD测试流程（排除MCP测试）
+./scripts/run_ci_tests.sh       # macOS/Linux
+scripts\run_ci_tests.bat        # Windows
+
+# 或使用pytest
+pytest -v -m "not mcp"          # 运行所有非MCP测试
+pytest -v -m "not mcp and not slow"  # 排除慢速测试
+```
+
+### 测试说明
+
+本项目配置了完整的CI/CD测试流程，**只测试Agent功能，不测试MCP功能**（MCP需要单独的服务器）。
+
+测试覆盖：
+- ✅ **烟雾测试**: 核心模块导入、配置、日志、Mock数据
+- ✅ **单元测试**: 配置模块、工具函数、工具模块
+- ✅ **集成测试**: 完整的Agent工作流（分析→创作→评审）
+- ✅ **代码质量**: Flake8语法检查、Black格式检查
+
+MCP测试排除原因：
+- MCP功能需要单独运行 `npx @modelcontextprotocol/server-xiaohongshu`
+- CI环境使用Mock模式，无需真实MCP服务
+- 通过 `@pytest.mark.mcp` 标记排除
+
+### CI/CD配置
+
+项目使用 GitHub Actions 自动化测试：
+- 推送到 `main` 或 `develop` 分支时自动运行
+- Pull Request 时自动验证
+- 测试失败会阻止合并
+
+详细文档：[CI/CD 配置说明](./docs/CI-CD.md)
+
+---
+
 ## 📊 性能表现
 
 ### 响应时间
@@ -378,6 +429,8 @@ MIT License
 
 - [架构设计](./docs/Architecture.md)
 - [API 文档](./docs/API-Agents.md)
+- [CI/CD 配置说明](./docs/CI-CD.md)
+- [LangChain 1.0 迁移指南](./docs/LANGCHAIN-1.0-MIGRATION.md)
 
 ---
 

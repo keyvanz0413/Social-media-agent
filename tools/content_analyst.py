@@ -274,5 +274,8 @@ def _build_prompt(notes: List[Dict[str, Any]], keyword: str) -> str:
 
 
 # 导出
-__all__ = ['analyze_xiaohongshu']
+# 向后兼容：为旧名称添加别名
+agent_a_analyze_xiaohongshu = analyze_xiaohongshu
+
+__all__ = ['analyze_xiaohongshu', 'agent_a_analyze_xiaohongshu']
 

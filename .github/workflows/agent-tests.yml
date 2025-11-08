@@ -1,0 +1,184 @@
+name: Agent Tests CI
+
+# 快速的 Agent 功能测试流程
+# 专注于验证 Agent 核心功能，适合快速反馈
+# 
+# 特点：
+# - 单版本 Python (3.10)
+# - 快速测试（烟雾测试 + 单元测试 + 集成测试）
+# - 排除 MCP 测试（需要单独的 MCP 服务）
+# 
+# 如需完整的 CI/CD 流程（多版本测试、安全扫描等），请查看 ci.yml
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # 允许手动触发
+
+# 环境变量
+env:
+  PYTHON_VERSION: "3.10"
+  MOCK_MODE: "true"
+
+jobs:
+  # 烟雾测试 - 快速验证
+  smoke-test:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+    - name: Checkout代码
+      uses: actions/checkout@v3
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: 运行烟雾测试
+      env:
+        MOCK_MODE: "true"
+      run: |
+        python tests/smoke_test.py
+
+  # 单元测试 - Agent功能
+  unit-tests:
+    name: Unit Tests (Agent Functions)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: smoke-test
+    
+    steps:
+    - name: Checkout代码
+      uses: actions/checkout@v3
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-xdist
+    
+    - name: 运行配置测试
+      env:
+        MOCK_MODE: "true"
+      run: |
+        pytest tests/test_config.py -v -m "not mcp"
+    
+    - name: 运行工具测试
+      env:
+        MOCK_MODE: "true"
+      run: |
+        pytest tests/test_tools.py -v -m "not mcp"
+    
+    - name: 运行工具模块测试
+      env:
+        MOCK_MODE: "true"
+      run: |
+        pytest tests/test_utils.py -v -m "not mcp and not slow"
+
+  # 集成测试 - Agent工作流
+  integration-tests:
+    name: Integration Tests (Agent Workflows)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: unit-tests
+    
+    steps:
+    - name: Checkout代码
+      uses: actions/checkout@v3
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+    
+    - name: 运行综合测试（排除MCP）
+      env:
+        MOCK_MODE: "true"
+      run: |
+        python tests/comprehensive_test.py
+
+  # 代码质量检查
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout代码
+      uses: actions/checkout@v3
+    
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: 安装代码质量工具
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black pylint
+    
+    - name: 运行Flake8检查
+      run: |
+        # 检查Python语法错误和未定义的名称
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # 检查代码风格（警告级别）
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics \
+          --exclude=__pycache__,venv,env,.venv,.git,outputs,logs
+    
+    - name: 检查代码格式（Black）
+      run: |
+        black --check --diff --exclude="/(\.git|\.venv|venv|env|__pycache__|outputs|logs)/" .
+      continue-on-error: true  # 格式问题不阻止构建
+
+  # 测试报告汇总
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [smoke-test, unit-tests, integration-tests, code-quality]
+    if: always()
+    
+    steps:
+    - name: 检查测试结果
+      run: |
+        echo "=== CI/CD 测试总结 ==="
+        echo "✅ 烟雾测试: ${{ needs.smoke-test.result }}"
+        echo "✅ 单元测试: ${{ needs.unit-tests.result }}"
+        echo "✅ 集成测试: ${{ needs.integration-tests.result }}"
+        echo "✅ 代码质量: ${{ needs.code-quality.result }}"
+        echo ""
+        echo "注意: MCP相关测试已被排除（需要单独的MCP服务）"
+        
+        # 如果有任何必需的测试失败，则失败
+        if [ "${{ needs.smoke-test.result }}" != "success" ] || \
+           [ "${{ needs.unit-tests.result }}" != "success" ] || \
+           [ "${{ needs.integration-tests.result }}" != "success" ]; then
+          echo "❌ 部分测试失败"
+          exit 1
+        fi
+        
+        echo "🎉 所有Agent测试通过！"
+
