@@ -266,3 +266,27 @@ logs/
 node_modules/
 package-lock.json
 yarn.lock
+
+# ==================== 项目特定排除 ====================
+# 文档目录
+docs/
+README.md
+TESTING.md
+CI-CD-SETUP-SUMMARY.md
+LANGCHAIN-GUIDE.md
+
+# 测试
+tests/
+
+# 脚本
+scripts/
+
+# CI/CD
+.github/
+
+# 开发工具配置
+Makefile
+pytest.ini
+.coveragerc
+.pre-commit-config.yaml
+pyproject.toml
