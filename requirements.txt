@@ -34,6 +34,8 @@ tqdm>=4.65.0  # 进度条
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
 pytest-mock>=3.11.0
+pytest-cov>=4.1.0  # 代码覆盖率
+pytest-xdist>=3.3.0  # 并行测试
 
 # ========== Development (Optional) ==========
 black>=23.0.0
