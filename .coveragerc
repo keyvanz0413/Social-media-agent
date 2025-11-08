@@ -1,0 +1,55 @@
+# 代码覆盖率配置
+
+[run]
+source = .
+omit =
+    */tests/*
+    */test_*
+    */__pycache__/*
+    */venv/*
+    */env/*
+    */.venv/*
+    setup.py
+    */site-packages/*
+    # 第三方库
+    */connectonion/*
+    # 临时文件
+    */outputs/*
+    */logs/*
+    */cache/*
+
+branch = True
+parallel = True
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+sort = Cover
+
+exclude_lines =
+    # 标准排除模式
+    pragma: no cover
+    def __repr__
+    def __str__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+    @abc.abstractmethod
+    # 调试代码
+    if self.debug:
+    if settings.DEBUG
+    # 类型检查
+    if typing.TYPE_CHECKING:
+    # 仅用于类型提示
+    \.\.\.
+
+[html]
+directory = htmlcov
+title = Social Media Agent - Coverage Report
+
+[xml]
+output = coverage.xml
+

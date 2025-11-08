@@ -41,18 +41,17 @@ def validate_mcp_connection() -> bool:
 
 def run_interactive_mode():
     """
-    交互式模式 - 与用户对话式交互
+    交互式模式 - 与用户对话式交互 (LangChain 1.0版本)
     """
     from agent import create_coordinator_agent
     
     # 创建 Agent
     try:
-        import warnings
-        warnings.filterwarnings('ignore', category=UserWarning, module='connectonion')
         coordinator = create_coordinator_agent()
-        warnings.filterwarnings('default')
-    except ImportError:
-        print("❌ ConnectOnion 未安装: pip install connectonion")
+        logger.info("✅ LangChain Agent 创建成功")
+    except ImportError as e:
+        print(f"❌ LangChain 未安装: {str(e)}")
+        print("💡 安装命令: pip install langchain langchain-openai langchain-anthropic")
         return
     except Exception as e:
         print(f"❌ 初始化失败: {str(e)}")
@@ -87,9 +86,14 @@ def run_interactive_mode():
                 os.system('clear' if os.name != 'nt' else 'cls')
                 continue
             
-            # 调用 Agent 处理请求
+            # 使用LangChain 1.0的invoke方法调用Agent
             print("\n🤖 Coordinator: 正在处理...\n")
-            result = coordinator.input(user_input)
+            response = coordinator.invoke(
+                {"messages": [{"role": "user", "content": user_input}]}
+            )
+            
+            # 从响应中提取结果
+            result = response.get("messages", [])[-1].content if response.get("messages") else str(response)
             
             # 显示结果
             print(f"\n🤖 Coordinator: {result}\n")
@@ -122,7 +126,7 @@ def print_help():
 
 def run_single_task(task: str):
     """
-    单任务模式 - 执行单个任务
+    单任务模式 - 执行单个任务 (LangChain 1.0版本)
     
     Args:
         task: 任务描述
@@ -133,14 +137,17 @@ def run_single_task(task: str):
     
     try:
         # 创建 Agent
-        import warnings
-        warnings.filterwarnings('ignore', category=UserWarning, module='connectonion')
         coordinator = create_coordinator_agent()
-        warnings.filterwarnings('default')
+        logger.info("✅ LangChain Agent 创建成功")
         
-        # 执行任务
+        # 使用LangChain 1.0的invoke方法执行任务
         print("🤖 正在处理...\n")
-        result = coordinator.input(task)
+        response = coordinator.invoke(
+            {"messages": [{"role": "user", "content": task}]}
+        )
+        
+        # 从响应中提取结果
+        result = response.get("messages", [])[-1].content if response.get("messages") else str(response)
         
         # 显示结果
         print("\n📝 结果:")
@@ -149,8 +156,9 @@ def run_single_task(task: str):
         print("✅ 完成\n")
         return True
         
-    except ImportError:
-        print("❌ ConnectOnion 未安装: pip install connectonion")
+    except ImportError as e:
+        print(f"❌ LangChain 未安装: {str(e)}")
+        print("💡 安装命令: pip install langchain langchain-openai langchain-anthropic")
         return False
         
     except Exception as e:

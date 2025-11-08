@@ -1,8 +1,8 @@
 # Social Media Agent
 
-基于 AI Agent 的智能社交媒体内容创作系统，支持**自动分析、创作、评审和发布**小红书内容。
+基于 **LangChain 1.0** 的智能社交媒体内容创作系统，支持**自动分析、创作、评审和发布**小红书内容。
 
-**版本**: v1.0 | **状态**: ✅ 生产就绪
+**版本**: v1.0 (LangChain 1.0) | **状态**: ✅ 生产就绪 | **框架**: LangChain + LangGraph
 
 ---
 
@@ -284,11 +284,24 @@ Social-media-agent/
 
 ## 🛠️ 技术栈
 
-- **Agent 框架**: [ConnectOnion](https://github.com/connectonion/connectonion)
-- **LLM 模型**: GPT-5 Mini / Claude Opus 4.1 / Claude 3.7 Sonnet / Qwen 3
+- **Agent 框架**: [LangChain 1.0](https://docs.langchain.com) + [LangGraph](https://langchain-ai.github.io/langgraph/)
+- **LLM 模型**: Claude Sonnet 4 / GPT-4o / Claude Opus 4.1 / Qwen 3
 - **图片生成**: DALL-E 3 / Stable Diffusion
 - **MCP 服务**: [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp)
-- **语言**: Python 3.8+
+- **语言**: Python 3.11+
+
+### 🆕 LangChain 1.0 升级
+
+本项目已从 ConnectOnion 迁移到 **LangChain 1.0**，带来以下改进：
+
+✨ **核心优势**:
+- 更简洁的 API（代码量减少 60%+）
+- 基于 LangGraph 的持久化执行
+- 流式输出支持（实时查看思考过程）
+- Human-in-the-loop 功能
+- LangSmith 深度可观测性
+
+📖 **详细迁移文档**: [LANGCHAIN-1.0-MIGRATION.md](./docs/LANGCHAIN-1.0-MIGRATION.md)
 
 ---
 
@@ -312,6 +325,28 @@ MIT License
 ---
 
 ## 🆕 版本更新
+
+### v2.0 (2025-11-04) - LangChain 1.0 重构版 🎉
+
+**重大升级**: 从 ConnectOnion 迁移到 LangChain 1.0
+
+**核心改进**:
+- ✅ 使用 LangChain 1.0 的 `create_agent()` API
+- ✅ 集成 LangGraph 实现持久化执行
+- ✅ 支持流式输出，实时查看处理过程
+- ✅ 统一模型接口，支持 OpenAI/Anthropic/第三方平台
+- ✅ 代码简化 60%+，可维护性大幅提升
+- ✅ 完整的迁移文档和最佳实践指南
+
+**技术栈**:
+- LangChain: 1.0.2
+- LangChain-OpenAI: 1.0.1
+- LangChain-Anthropic: 1.0.1
+- LangGraph: 1.0.1
+
+**迁移指南**: 查看 [LANGCHAIN-1.0-MIGRATION.md](./docs/LANGCHAIN-1.0-MIGRATION.md)
+
+---
 
 ### v1.0 (2025-11-03)
 

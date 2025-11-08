@@ -57,13 +57,14 @@ class Config:
         }
     }
     
-    # Agent配置
+    # LangChain Agent配置
     AGENT_CONFIGS = {
         "coordinator": {
             "name": "social_media_coordinator",
-            "model": "gpt-5-mini-2025-08-07",
+            "model": "claude-sonnet-4-20250514",  # LangChain 1.0 推荐模型
             "max_iterations": 30,
-            "temperature": 0.7
+            "temperature": 0.7,
+            "streaming": True  # LangChain 1.0 支持流式输出
         },
         "content_analyst": {
             "temperature": 0.5,
@@ -117,6 +118,9 @@ Config.ensure_dirs()
 ModelConfig = Config
 PathConfig = Config
 MCPConfig = Config
+LogConfig = Config
+DevConfig = Config
+BusinessConfig = Config
 
-__all__ = ['Config', 'ModelConfig', 'PathConfig', 'MCPConfig']
+__all__ = ['Config', 'ModelConfig', 'PathConfig', 'MCPConfig', 'LogConfig', 'DevConfig', 'BusinessConfig']
 

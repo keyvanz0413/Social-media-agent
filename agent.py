@@ -1,15 +1,14 @@
 """
 协调Agent - 负责整体流程的协调和管理
+使用 LangChain 1.0 框架重构
 """
 
 import logging
-import warnings
+from typing import Any, Dict
 
-try:
-    from connectonion import Agent
-except ImportError:
-    Agent = None
-    logging.warning("ConnectOnion 未安装")
+from langchain.agents import create_agent
+from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 
 from tools.content_analyst import analyze_xiaohongshu
 from tools.content_creator import create_content
@@ -24,38 +23,151 @@ logger = logging.getLogger(__name__)
 
 
 def create_coordinator_agent():
-    """创建主协调Agent"""
-    if Agent is None:
-        raise ImportError("ConnectOnion 框架未安装。请运行: pip install connectonion")
+    """
+    创建主协调Agent (LangChain 1.0版本)
     
+    使用LangChain 1.0的create_agent()函数，提供:
+    - 更简洁的API
+    - 基于LangGraph的持久化执行
+    - 流式输出支持
+    - Human-in-the-loop功能
+    """
     system_prompt = _load_system_prompt()
     
+    # 获取配置
+    config = Config.AGENT_CONFIGS["coordinator"]
+    model_name = config["model"]
+    
+    logger.info(f"创建 LangChain Coordinator Agent，模型: {model_name}")
+    
+    # 根据模型选择对应的LLM
+    model = _create_model(model_name, config)
+    
+    # 包装工具函数为 LangChain 工具
+    # LangChain 需要显式的工具声明才能让 Agent 调用
+    tools = _wrap_tools()
+    
+    # 使用LangChain 1.0的create_agent创建Agent
+    # 这比ConnectOnion更简洁，并且内置了LangGraph的持久化功能
+    agent = create_agent(
+        model=model,
+        tools=tools,
+        system_prompt=system_prompt
+    )
+    
+    logger.info("✅ LangChain Coordinator Agent 创建成功")
+    return agent
+
+
+def _wrap_tools():
+    """
+    将普通 Python 函数包装为 LangChain 工具
+    
+    关键: LangChain 1.0 需要使用 @tool 装饰器或显式声明工具
+    才能让 Agent 识别并调用
+    """
+    from langchain_core.tools import StructuredTool
+    
+    # 包装所有工具函数
     tools = [
-        analyze_xiaohongshu,
-        create_content,
-        generate_images_for_content,
-        generate_images_from_draft,
-        review_engagement,
-        review_quality,
-        review_compliance,
-        publish_to_xiaohongshu
+        StructuredTool.from_function(
+            func=analyze_xiaohongshu,
+            name="analyze_xiaohongshu",
+            description="分析小红书平台上指定关键词的热门内容，提取标题模式、用户需求等"
+        ),
+        StructuredTool.from_function(
+            func=create_content,
+            name="create_content",
+            description="基于分析结果创作小红书帖子，包含标题、正文、标签和图片建议"
+        ),
+        StructuredTool.from_function(
+            func=generate_images_for_content,
+            name="generate_images_for_content",
+            description="使用 AI 生成图片（DALL-E 3 或本地模型）"
+        ),
+        StructuredTool.from_function(
+            func=generate_images_from_draft,
+            name="generate_images_from_draft",
+            description="从草稿使用 AI 生成图片"
+        ),
+        StructuredTool.from_function(
+            func=review_engagement,
+            name="review_engagement",
+            description="评审内容的吸引力和互动潜力"
+        ),
+        StructuredTool.from_function(
+            func=review_quality,
+            name="review_quality",
+            description="评审内容的质量（语法、结构、可读性等）"
+        ),
+        StructuredTool.from_function(
+            func=review_compliance,
+            name="review_compliance",
+            description="检查内容是否符合小红书平台规范"
+        ),
+        StructuredTool.from_function(
+            func=publish_to_xiaohongshu,
+            name="publish_to_xiaohongshu",
+            description="发布内容到小红书平台"
+        )
     ]
     
-    config = Config.AGENT_CONFIGS["coordinator"]
-    logger.info(f"创建 Coordinator Agent，模型: {config['model']}")
+    logger.info(f"✅ 已包装 {len(tools)} 个工具")
+    return tools
+
+
+def _create_model(model_name: str, config: Dict[str, Any]):
+    """
+    创建LangChain模型实例
     
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", category=UserWarning, module="connectonion")
-        agent = Agent(
-            name=config["name"],
-            system_prompt=system_prompt,
-            tools=tools,
-            max_iterations=config["max_iterations"],
-            model=config["model"]
-        )
+    LangChain 1.0提供统一的模型接口，支持:
+    - OpenAI (GPT-4, GPT-4o, etc.)
+    - Anthropic (Claude系列)
+    - 其他第三方兼容平台
+    """
+    temperature = config.get("temperature", 0.7)
     
-    logger.info("Coordinator Agent 创建成功")
-    return agent
+    # 检测模型类型并创建相应的ChatModel
+    if "claude" in model_name.lower():
+        # 使用Anthropic模型
+        if Config.ANTHROPIC_API_KEY:
+            logger.info(f"使用 Anthropic API: {model_name}")
+            return ChatAnthropic(
+                model=model_name,
+                temperature=temperature,
+                anthropic_api_key=Config.ANTHROPIC_API_KEY,
+                streaming=config.get("streaming", True)
+            )
+        elif Config.OPENAI_BASE_URL:
+            # 通过第三方平台调用Claude
+            logger.info(f"通过第三方平台调用: {model_name}")
+            return ChatOpenAI(
+                model=model_name,
+                temperature=temperature,
+                openai_api_key=Config.OPENAI_API_KEY,
+                openai_api_base=Config.OPENAI_BASE_URL,
+                streaming=config.get("streaming", True)
+            )
+        else:
+            raise ValueError("未配置 ANTHROPIC_API_KEY 或 OPENAI_BASE_URL")
+    else:
+        # 使用OpenAI或兼容API
+        if not Config.OPENAI_API_KEY:
+            raise ValueError("未配置 OPENAI_API_KEY")
+        
+        kwargs = {
+            "model": model_name,
+            "temperature": temperature,
+            "openai_api_key": Config.OPENAI_API_KEY,
+            "streaming": config.get("streaming", True)
+        }
+        
+        # 如果配置了自定义base_url，使用它
+        if Config.OPENAI_BASE_URL:
+            kwargs["openai_api_base"] = Config.OPENAI_BASE_URL
+            logger.info(f"使用第三方平台: {Config.OPENAI_BASE_URL}")
+        
+        return ChatOpenAI(**kwargs)
 
 
 def _load_system_prompt() -> str:
@@ -174,11 +286,11 @@ def _get_default_system_prompt() -> str:
 
 def main():
     """
-    主函数 - 用于测试
+    主函数 - 用于测试 (LangChain 1.0版本)
     """
     try:
         # 创建 Agent
-        print("🚀 正在初始化 Coordinator Agent...")
+        print("🚀 正在初始化 LangChain Coordinator Agent...")
         coordinator = create_coordinator_agent()
         print("✅ Coordinator Agent 已就绪！\n")
         
@@ -199,9 +311,15 @@ def main():
                 if not user_input:
                     continue
                 
-                # 调用 Agent
+                # 使用LangChain 1.0的invoke方法调用Agent
+                # invoke接受messages格式的输入
                 print("\n🤖 Coordinator: 正在处理...\n")
-                result = coordinator.input(user_input)
+                response = coordinator.invoke(
+                    {"messages": [{"role": "user", "content": user_input}]}
+                )
+                
+                # 从响应中提取结果
+                result = response.get("messages", [])[-1].content if response.get("messages") else str(response)
                 print(f"\n🤖 Coordinator: {result}\n")
                 print("-" * 60 + "\n")
                 
@@ -214,7 +332,7 @@ def main():
                 
     except ImportError as e:
         print(f"❌ {str(e)}")
-        print("\n💡 安装命令: pip install connectonion")
+        print("\n💡 安装命令: pip install langchain langchain-openai langchain-anthropic")
     except Exception as e:
         print(f"❌ 初始化失败: {str(e)}")
         logger.error(f"初始化 Coordinator Agent 失败: {str(e)}", exc_info=True)

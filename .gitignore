@@ -1,23 +1,13 @@
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Environment variables
-.env
-*.env
-!.env.example
-!env.example
-
-# Python
+# ==================== Python ====================
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
 *.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -31,44 +21,248 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+.pdm-python
+.pdm-build/
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
 venv/
 ENV/
-env/
+env.bak/
+venv.bak/
 
-# Logs
-*.log
-logs/
-.co/logs/
-*.pid
+# Spyder project settings
+.spyderproject
+.spyproject
 
-# Output directories
-outputs/
-cache/
-drafts/
-images/
+# Rope project settings
+.ropeproject
 
-# Temporary files
-*.tmp
-*.temp
-temp/
-tmp/
+# mkdocs documentation
+/site
 
-# IDE
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# ==================== IDE ====================
+# VSCode
 .vscode/
+*.code-workspace
+
+# PyCharm
 .idea/
-.co/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
 *.swp
 *.swo
 *~
+.vim/
 
-# Changelog (if auto-generated)
-CHANGELOG.md
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
 
-# Cookies and sensitive data
+# ==================== OS ====================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ==================== Project Specific ====================
+# 输出文件
+outputs/drafts/*.json
+outputs/images/*.jpg
+outputs/images/*.png
+outputs/logs/*.log
+outputs/cache/
+
+# 保留示例文件
+!outputs/drafts/.gitkeep
+!outputs/images/.gitkeep
+!outputs/logs/.gitkeep
+!outputs/cache/.gitkeep
+
+# 敏感信息
+*.env
+.env.local
+.env.*.local
+secrets/
+*.key
+*.pem
+*.crt
 cookies.json
 
-examples/
+# 临时文件
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# 测试生成的文件
+test_outputs/
+test_results/
+.pytest_cache/
+
+# 日志文件
+*.log
+logs/
+*.log.*
+
+# 数据库
+*.db
+*.sqlite
+*.sqlite3
+
+# ==================== 构建和部署 ====================
+# Docker
+.dockerignore
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# 其他
+node_modules/
+package-lock.json
+yarn.lock
