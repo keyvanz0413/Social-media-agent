@@ -112,7 +112,7 @@ def test_mcp_connection():
 
 ```bash
 # pytest 命令自动排除 mcp 标记的测试
-pytest -v -m "not mcp"
+pytest -q -m unit tests
 ```
 
 ## 本地测试
@@ -121,20 +121,20 @@ pytest -v -m "not mcp"
 
 ```bash
 # 运行烟雾测试
-python tests/smoke_test.py
+pytest -q -m smoke tests/smoke_test.py
 
 # 运行所有Agent测试（排除MCP）
-pytest -v -m "not mcp"
+pytest -q -m unit tests
 ```
 
 ### 完整测试
 
 ```bash
 # 运行综合测试套件
-python tests/comprehensive_test.py
+pytest -q -m integration tests/comprehensive_test.py
 
 # 使用pytest运行所有测试（排除MCP和慢速测试）
-pytest -v -m "not mcp and not slow"
+pytest -q -m unit tests
 ```
 
 ### 测试特定模块
@@ -230,7 +230,7 @@ def test_error_handling():
    ```bash
    # 设置相同的环境变量
    export MOCK_MODE=true
-   python tests/smoke_test.py
+   pytest -q -m smoke tests/smoke_test.py
    ```
 
 3. **检查依赖**
@@ -255,7 +255,7 @@ echo $MOCK_MODE  # 应该输出 "true"
 #### 问题3: 测试超时
 ```bash
 # 增加超时时间或跳过慢速测试
-pytest -v -m "not mcp and not slow"
+pytest -q -m unit tests
 ```
 
 ## 本地 CI/CD 脚本
@@ -276,7 +276,7 @@ export MOCK_MODE=true
 
 # 1. 烟雾测试
 echo "📦 步骤 1/4: 烟雾测试"
-python tests/smoke_test.py
+pytest -q -m smoke tests/smoke_test.py
 echo ""
 
 # 2. 单元测试
@@ -287,7 +287,7 @@ echo ""
 
 # 3. 集成测试
 echo "🔄 步骤 3/4: 集成测试"
-python tests/comprehensive_test.py
+pytest -q -m integration tests/comprehensive_test.py
 echo ""
 
 # 4. 代码质量

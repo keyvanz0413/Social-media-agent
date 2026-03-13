@@ -1,720 +1,105 @@
-# 架构设计文档
+# 架构说明
 
-本文档详细说明 Social Media Agent 系统的架构设计、技术选型和设计原则。
+本文档描述当前代码结构、运行路径和关键状态流。
 
----
+## 1. 总体分层
 
-## 📋 目录
+```text
+入口层
+  - main.py / agent.py / api_server.py (兼容入口)
+  - src/social_media_agent/main.py (CLI)
+  - src/social_media_agent/api/server.py (HTTP)
 
-1. [系统概述](#系统概述)
-2. [架构设计](#架构设计)
-3. [核心模块](#核心模块)
-4. [数据流](#数据流)
-5. [技术栈](#技术栈)
-6. [设计原则](#设计原则)
-7. [性能优化](#性能优化)
-8. [扩展性设计](#扩展性设计)
+编排层
+  - orchestration/loop_controller.py
+  - orchestration/langgraph_workflow.py
 
----
+能力层
+  - tools/*
+  - agents/reviewers/*
+  - memory/*
+  - scheduler/*
 
-## 系统概述
-
-### 目标
-
-创建一个智能的社交媒体内容创作系统，实现：
-- **自动化工作流**：从分析到发布的完整流程
-- **高质量输出**：AI 驱动的内容创作和评审
-- **高性能**：并行执行、智能缓存
-- **易扩展**：模块化设计、插件化架构
-
-### 核心功能
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                   Coordinator Agent                     │
-│              (主协调器 - GPT-5 Mini)                     │
-└──────────┬──────────────────────────────────┬──────────┘
-           │                                  │
-           ▼                                  ▼
-  ┌────────────────┐                ┌─────────────────┐
-  │  内容创作流程   │                │   评审系统       │
-  └────────────────┘                └─────────────────┘
-           │                                  │
-    ┌──────┴──────┐                    ┌─────┴─────┐
-    ▼             ▼                    ▼           ▼
-  分析工具     创作工具             质量评审    互动评审
-    │             │                    │           │
-    ▼             ▼                    │           │
-  搜索热门     生成内容                │           │
-  提取特征     生成图片                │           │
-    │             │                    │           │
-    └──────┬──────┘                    └─────┬─────┘
-           │                                  │
-           └───────────┬──────────────────────┘
-                       ▼
-                  综合决策
-                       │
-                       ▼
-                   发布工具
-                       │
-                       ▼
-                  小红书平台
+基础设施层
+  - utils/*
+  - config.py
+  - core/errors.py
 ```
 
----
+## 2. 关键目录职责
 
-## 架构设计
+- `src/social_media_agent/tools/`：可调用工具，承担分析、创作、评审、排期、发布、记忆读写。
+- `src/social_media_agent/agents/reviewers/`：质量/互动/合规评审逻辑。
+- `src/social_media_agent/memory/`：向量存储和检索，包含 FAISS 与降级路径。
+- `src/social_media_agent/scheduler/`：基于 SQLite 的排期服务。
+- `src/social_media_agent/orchestration/`：两条执行链路（循环控制器 + 状态图工作流）。
 
-### 整体架构
+## 3. 两条执行链路
 
-系统采用 **混合架构**：Agent（智能决策）+ 函数（确定性任务）
+### 3.1 Loop Controller
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                      应用层 (Application)                   │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐           │
-│  │   main.py  │  │  agent.py  │  │xiaohongshu_│           │
-│  │            │  │            │  │manager.py  │           │
-│  └────────────┘  └────────────┘  └────────────┘           │
-└────────────────────────────────────────────────────────────┘
-                         │
-┌────────────────────────────────────────────────────────────┐
-│                     Agent 层 (Agents)                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │ Coordinator  │  │   Quality    │  │ Engagement   │     │
-│  │   Agent      │  │   Reviewer   │  │   Reviewer   │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-└────────────────────────────────────────────────────────────┘
-                         │
-┌────────────────────────────────────────────────────────────┐
-│                     工具层 (Tools)                          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐          │
-│  │   content_  │ │   content_  │ │   image_    │          │
-│  │   analyst   │ │   creator   │ │  generator  │          │
-│  └─────────────┘ └─────────────┘ └─────────────┘          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐          │
-│  │   review_   │ │   review_   │ │  publisher  │          │
-│  │   tools     │ │  optimized  │ │             │          │
-│  └─────────────┘ └─────────────┘ └─────────────┘          │
-└────────────────────────────────────────────────────────────┘
-                         │
-┌────────────────────────────────────────────────────────────┐
-│                     工具类层 (Utils)                        │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐          │
-│  │ llm_client  │ │model_router │ │cache_manager│          │
-│  └─────────────┘ └─────────────┘ └─────────────┘          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐          │
-│  │ mcp_client  │ │draft_manager│ │  parallel_  │          │
-│  │             │ │             │ │  executor   │          │
-│  └─────────────┘ └─────────────┘ └─────────────┘          │
-└────────────────────────────────────────────────────────────┘
-                         │
-┌────────────────────────────────────────────────────────────┐
-│                   外部服务层 (External)                     │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐          │
-│  │   OpenAI    │ │  Anthropic  │ │ Xiaohongshu │          │
-│  │     API     │ │     API     │ │  MCP Server │          │
-│  └─────────────┘ └─────────────┘ └─────────────┘          │
-└────────────────────────────────────────────────────────────┘
-```
+文件：`orchestration/loop_controller.py`
 
-### 分层说明
+- 入口：`run_task_with_loop(task, max_iterations, quality_threshold)`
+- 典型流程：
+  1. 判断任务类型（内容/排期）
+  2. 内容任务先检索历史记忆
+  3. 调分析工具、生成草稿
+  4. 质量与合规评审
+  5. 不达标则带反馈继续迭代
+  6. 写入 trace 日志到 `outputs/logs/`
 
-| 层级 | 职责 | 技术 |
-|------|------|------|
-| **应用层** | 用户交互、流程控制 | Python CLI |
-| **Agent 层** | 智能决策、复杂推理 | ConnectOnion Framework |
-| **工具层** | 具体任务执行 | Python Functions |
-| **工具类层** | 通用能力支持 | Python Classes |
-| **外部服务层** | LLM 调用、平台集成 | REST API / MCP |
+该流程适合“需要重试和逐轮优化”的任务。
 
----
+### 3.2 LangGraph Workflow
 
-## 核心模块
+文件：`orchestration/langgraph_workflow.py`
 
-### 1. Coordinator Agent
+- 状态对象：`WorkflowState`
+- 节点：`route -> schedule | analyze -> create -> review`
+- 条件边：由 `route` 判断下一跳
+- 输出：结构化结果 + graph trace
 
-**位置**: `agent.py`
+该流程适合“步骤固定、可视化明确”的任务。
 
-**职责**:
-- 理解用户意图
-- 规划执行流程
-- 调度工具和子 Agent
-- 监控执行状态
+## 4. 数据存储
 
-**关键特性**:
-- 基于 ConnectOnion 框架
-- 支持 8 个工具函数
-- 最大 30 次迭代
-- 使用 GPT-5 Mini（快速 + 低成本）
+### 4.1 记忆系统
 
-### 2. 内容分析器
+- 记录文件：`outputs/memory/records.jsonl`
+- 索引目录：`outputs/memory/faiss_index/`
+- 作用：保存偏好、复盘、上下文片段并支持语义检索
 
-**位置**: `tools/content_analyst.py`
+### 4.2 排期系统
 
-**职责**:
-- 搜索小红书热门内容
-- 分析标题模式
-- 提取用户需求
-- 生成创作建议
+- 数据库：`outputs/schedule.db`
+- 能力：创建计划、过滤查询、改期
 
-**技术特点**:
-- MCP 客户端集成
-- 智能缓存（30分钟）
-- LLM 分析（Claude 3.7 Sonnet）
-- 降级策略（统计分析）
+### 4.3 运行产物
 
-### 3. 内容创作器
+- 日志：`outputs/logs/`
+- 草稿：`outputs/drafts/`
+- 图片：`outputs/images/`
 
-**位置**: `tools/content_creator.py`
+## 5. 入口与桥接层
 
-**职责**:
-- 基于分析结果创作内容
-- 生成标题、正文、标签
-- 提供图片建议
-- 自动保存草稿
+项目采用 `src` 布局，同时保留顶层兼容入口：
 
-**技术特点**:
-- 使用 Claude Opus 4.1（顶级创作能力）
-- 支持 3 种风格（casual/professional/storytelling）
-- JSON 结构化输出
-- 草稿自动管理
+- 顶层 `main.py` 转发到 `social_media_agent.main.main`
+- 顶层 `api_server.py` 暴露 `app`
+- 顶层 `social_media_agent/__init__.py` 把导入路径桥接到 `src/social_media_agent`
 
-### 4. 图片生成器
+这让脚本、CLI、HTTP 服务和旧调用方式可以共存。
 
-**位置**: `tools/image_generator.py`
+## 6. 错误处理与可观测性
 
-**职责**:
-- DALL-E 3 / Stable Diffusion 生成图片
-- 关键词提取和优化
-- 图片下载和保存
+- 统一错误码定义在 `core/errors.py`
+- 关键路径输出结构化 `success/error/data/message`
+- loop/graph 都会写 trace 文件，方便复盘失败节点和评分变化
 
-**技术特点**:
-- 支持多种生成方法
-- 自动提示词优化
-- 异步下载
-- 错误恢复
+## 7. 扩展建议（与现有结构兼容）
 
-### 5. 评审系统
-
-**位置**: `agents/reviewers/`, `tools/review_*.py`
-
-**组成**:
-- Quality Reviewer Agent（5维质量评估）
-- Engagement Reviewer Agent（互动潜力评估）
-- Compliance Checker（合规性检查）
-
-**技术特点**:
-- 并行执行（节省时间）
-- 智能缓存（节省成本）
-- 多维度评分
-- 智能决策
-
-### 6. 模型路由器
-
-**位置**: `utils/model_router.py`
-
-**职责**:
-- 根据任务选择最优模型
-- 自动降级策略
-- 模型可用性检查
-- 重试机制
-
-**核心功能**:
-```python
-# 自动选择模型
-model = router.select_model(TaskType.ANALYSIS, QualityLevel.HIGH)
-
-# 自动降级调用
-result, used_model = router.call_with_fallback(
-    "gpt-4o",
-    call_function,
-    max_retries=3
-)
-
-# 检查可用性
-is_available = router.check_model_availability("gpt-4o")
-```
-
-### 7. 缓存管理器
-
-**位置**: `utils/cache_manager.py`
-
-**职责**:
-- 双层缓存（内存 + 磁盘）
-- TTL 过期控制
-- LRU 淘汰策略
-- 统计和监控
-
-**性能提升**:
-- 命中率：70%（典型场景）
-- 加速比：20000x+
-- 成本节省：70%
-
-### 8. 并行执行器
-
-**位置**: `utils/parallel_executor.py`
-
-**职责**:
-- 多任务并行执行
-- 错误隔离
-- 性能统计
-
-**使用场景**:
-- 并行评审（质量 + 互动 + 合规）
-- 批量图片生成
-- 多平台发布
-
----
-
-## 数据流
-
-### 完整工作流数据流
-
-```
-用户输入
-   │
-   ▼
-┌──────────────────┐
-│ Coordinator Agent│  1. 解析需求
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  Content Analyst │  2. 分析热门内容
-│  ┌────────────┐  │     - MCP 搜索
-│  │MCP Client  │  │     - LLM 分析
-│  └────────────┘  │     - 缓存结果
-└────────┬─────────┘
-         │ analysis_result (JSON)
-         ▼
-┌──────────────────┐
-│ Content Creator  │  3. 创作内容
-│  ┌────────────┐  │     - LLM 生成
-│  │LLM Client  │  │     - 保存草稿
-│  └────────────┘  │
-└────────┬─────────┘
-         │ content_data (JSON)
-         ▼
-┌──────────────────┐
-│ Image Generator  │  4. 生成图片
-│  ┌────────────┐  │     - DALL-E 3
-│  │DALL-E API  │  │     - 下载保存
-│  └────────────┘  │
-└────────┬─────────┘
-         │ image_paths (List)
-         ▼
-┌──────────────────────────────────┐
-│       Review System              │  5. 评审内容
-│  ┌─────────────────────────────┐ │     - 并行执行
-│  │ ┌─────────┐  ┌────────────┐ │ │     - 智能缓存
-│  │ │ Quality │  │Engagement  │ │ │     - 综合评分
-│  │ │ Reviewer│  │ Reviewer   │ │ │
-│  │ └─────────┘  └────────────┘ │ │
-│  │        ┌──────────┐          │ │
-│  │        │Compliance│          │ │
-│  │        │ Checker  │          │ │
-│  │        └──────────┘          │ │
-│  └─────────────────────────────┘ │
-└────────┬─────────────────────────┘
-         │ review_result (Dict)
-         ▼
-┌──────────────────┐
-│  Decision Logic  │  6. 智能决策
-│  ┌────────────┐  │     - score >= 8: approve
-│  │  Rules &   │  │     - score >= 6: revise
-│  │  Thresholds│  │     - score < 6: reject
-│  └────────────┘  │
-└────────┬─────────┘
-         │
-         ▼
-    ┌─────────┐
-    │approve? │
-    └────┬────┘
-         │ Yes
-         ▼
-┌──────────────────┐
-│    Publisher     │  7. 发布内容
-│  ┌────────────┐  │     - MCP publish
-│  │MCP Client  │  │     - 返回链接
-│  └────────────┘  │
-└────────┬─────────┘
-         │
-         ▼
-    发布成功
-```
-
----
-
-## 技术栈
-
-### 核心框架
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| **Python** | 3.8+ | 主要开发语言 |
-| **ConnectOnion** | 0.0.4+ | Agent 框架 |
-
-### AI/LLM
-
-| 服务 | 模型 | 用途 |
-|------|------|------|
-| **OpenAI** | GPT-4o, GPT-4o-mini, GPT-5 Mini | 推理、快速任务 |
-| **Anthropic** | Claude Opus 4.1, Claude Sonnet 4, Claude 3.7 | 创作、分析、评审 |
-| **DALL-E 3** | - | 图片生成 |
-
-### 数据处理
-
-| 库 | 版本 | 用途 |
-|------|------|------|
-| **Pydantic** | 2.0+ | 数据验证 |
-| **Requests** | 2.31+ | HTTP 请求 |
-| **HTTPX** | 0.27+ | 异步 HTTP |
-
-### 性能优化
-
-| 技术 | 用途 |
-|------|------|
-| **Cachetools** | 内存缓存 |
-| **Threading** | 并行执行 |
-| **Tenacity** | 重试机制 |
-
-### 开发工具
-
-| 工具 | 用途 |
-|------|------|
-| **Pytest** | 测试框架 |
-| **Loguru** | 高级日志 |
-| **Python-dotenv** | 环境变量管理 |
-
----
-
-## 设计原则
-
-### 1. 混合架构（Hybrid Architecture）
-
-**原则**: Agent（智能）+ 函数（高效）
-
-```python
-# ✅ 好的实践：复杂决策用 Agent
-coordinator = Agent(...)
-result = coordinator.input("发表一篇旅游帖子")
-
-# ✅ 好的实践：确定性任务用函数
-compliance_result = review_compliance(title, content)
-```
-
-**优势**:
-- Agent 负责复杂决策和流程控制
-- 函数负责确定性任务（更快、更稳定）
-- 降低成本、提升性能
-
-### 2. 数据驱动（Data-Driven）
-
-**原则**: 基于真实数据而非规则
-
-```python
-# ❌ 不好：基于规则
-def evaluate_title(title):
-    if len(title) > 20:
-        return 5.0
-    return 8.0
-
-# ✅ 好：基于真实数据
-def evaluate_title(title, topic):
-    # 搜索爆款标题
-    similar_posts = search_posts(topic, min_likes=1000)
-    # 对比分析
-    return compare_with_top_posts(title, similar_posts)
-```
-
-### 3. 模块化（Modular Design）
-
-**原则**: 高内聚、低耦合
-
-```
-tools/
-  ├── content_analyst.py     # 独立模块
-  ├── content_creator.py     # 独立模块
-  ├── image_generator.py     # 独立模块
-  └── publisher.py           # 独立模块
-```
-
-**优势**:
-- 易于测试
-- 易于维护
-- 易于扩展
-
-### 4. 错误恢复（Error Recovery）
-
-**原则**: 多层降级策略
-
-```python
-# 1. 模型降级
-gpt-4o → gpt-4o-mini → (失败)
-
-# 2. 功能降级
-LLM 分析 → 统计分析 → 基础分析
-
-# 3. 评审降级
-完整评审 → 快速评审 → 仅合规检查
-```
-
-### 5. 性能优先（Performance First）
-
-**原则**: 缓存 + 并行 + 异步
-
-```python
-# 缓存
-@cache(ttl=86400)
-def analyze_content(...):
-    ...
-
-# 并行
-results = parallel_execute([task1, task2, task3])
-
-# 异步
-async def download_image(url):
-    ...
-```
-
----
-
-## 性能优化
-
-### 缓存策略
-
-#### 1. 双层缓存
-
-```
-┌─────────────┐
-│ 内存缓存     │  ← 快速访问（<1ms）
-│ (LRU)       │
-└──────┬──────┘
-       │ miss
-       ▼
-┌─────────────┐
-│ 磁盘缓存     │  ← 持久化（~10ms）
-│ (JSON)      │
-└──────┬──────┘
-       │ miss
-       ▼
-    实际调用
-```
-
-#### 2. 缓存 TTL
-
-| 数据类型 | TTL | 原因 |
-|---------|-----|------|
-| MCP 搜索结果 | 30分钟 | 热门内容变化慢 |
-| LLM 分析结果 | 24小时 | 分析结果稳定 |
-| 评审结果 | 24小时 | 评分标准一致 |
-
-#### 3. 缓存键生成
-
-```python
-def cache_key(func_name, **kwargs):
-    # 排序参数，确保顺序一致
-    sorted_kwargs = sorted(kwargs.items())
-    # 生成哈希
-    key_str = f"{func_name}:{sorted_kwargs}"
-    return hashlib.md5(key_str.encode()).hexdigest()
-```
-
-### 并行执行
-
-#### 1. 并行评审
-
-```python
-# 串行（慢）: 17秒
-quality = review_quality(...)      # 8秒
-engagement = review_engagement(...)  # 7秒
-compliance = review_compliance(...)  # 2秒
-# 总计: 17秒
-
-# 并行（快）: 8秒
-results = parallel_execute([
-    (review_quality, kwargs1),
-    (review_engagement, kwargs2),
-    (review_compliance, kwargs3)
-])
-# 总计: max(8, 7, 2) = 8秒
-```
-
-#### 2. 并行图片生成
-
-```python
-# 串行: N * T
-for suggestion in suggestions:
-    generate_image(suggestion)  # 串行生成
-
-# 并行: T
-parallel_execute([
-    (generate_image, s) for s in suggestions
-])  # 并行生成
-```
-
-### 性能指标
-
-| 场景 | 优化前 | 优化后 | 提升 |
-|------|--------|--------|------|
-| **完整流程（首次）** | 49秒 | 47秒 | 4.1% |
-| **完整流程（缓存）** | 49秒 | 12秒 | **75.5%** ⭐ |
-| **评审环节（并行）** | 17秒 | 15秒 | 11.8% |
-| **评审环节（缓存）** | 17秒 | 0.001秒 | **99.99%** ✨ |
-
----
-
-## 扩展性设计
-
-### 1. 多平台支持
-
-**当前**: 小红书  
-**扩展**: 抖音、微博、知乎等
-
-```python
-# 添加新平台只需：
-# 1. 实现 MCP 客户端
-class DouyinMCPClient(BaseMCPClient):
-    def search_posts(self, keyword): ...
-    def publish_post(self, content): ...
-
-# 2. 注册到配置
-MCPConfig.SERVERS["douyin"] = {
-    "url": "http://localhost:8002",
-    "enabled": True
-}
-
-# 3. 使用统一接口
-mcp_client = get_mcp_client("douyin")
-```
-
-### 2. 多模型支持
-
-**当前**: OpenAI + Anthropic  
-**扩展**: 任何 LLM 模型
-
-```python
-# 添加新模型只需：
-# 1. 添加到配置
-ModelConfig.MODELS["new_model"] = {
-    "name": "new-model-v1",
-    "provider": "new-provider",
-    "description": "..."
-}
-
-# 2. 配置降级链
-ModelConfig.FALLBACK_MODELS["new-model-v1"] = "gpt-4o-mini"
-
-# 3. 自动生效（无需修改代码）
-router = ModelRouter()
-model = router.select_model(TaskType.ANALYSIS)
-```
-
-### 3. 插件化工具
-
-```python
-# tools/custom_tool.py
-def my_custom_tool(input: str) -> str:
-    """自定义工具"""
-    return f"处理结果: {input}"
-
-# agent.py
-from tools.custom_tool import my_custom_tool
-
-tools = [
-    agent_a_analyze_xiaohongshu,
-    agent_c_create_content,
-    my_custom_tool,  # ← 添加自定义工具
-    # ...
-]
-
-coordinator = Agent(tools=tools, ...)
-```
-
-### 4. 自定义评审器
-
-```python
-# agents/reviewers/custom_reviewer.py
-class CustomReviewer:
-    def review(self, content):
-        # 自定义评审逻辑
-        return {"score": 8.5, "suggestions": [...]}
-
-# 使用
-from agents.reviewers.custom_reviewer import CustomReviewer
-
-custom_reviewer = CustomReviewer()
-result = custom_reviewer.review(content)
-```
-
----
-
-## 安全性和隐私
-
-### 1. API Key 管理
-
-```python
-# ✅ 好的实践
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-# ❌ 不好的实践
-OPENAI_API_KEY = "sk-..."  # 硬编码
-```
-
-### 2. 敏感数据处理
-
-```python
-# 合规检查使用本地模型（隐私保护）
-AgentConfig.SUB_AGENTS["reviewer_compliance"]["model"] = "llama3.2"
-```
-
-### 3. 日志脱敏
-
-```python
-# 记录日志时脱敏
-logger.info(f"用户: {mask_username(username)}")
-logger.debug(f"API Key: {api_key[:8]}***")
-```
-
----
-
-## 测试策略
-
-### 测试层次
-
-```
-E2E 测试 (End-to-End)
-    ├── 完整工作流测试
-    └── 集成测试
-
-单元测试 (Unit Tests)
-    ├── 工具函数测试
-    ├── Agent 测试
-    └── 工具类测试
-
-性能测试 (Performance)
-    ├── 缓存效果测试
-    ├── 并行执行测试
-    └── 性能对比测试
-```
-
-### 测试覆盖率
-
-- **单元测试**: 41个
-- **通过率**: 90% (37/41)
-- **测试文件**: 8个
-
----
-
-## 📚 相关文档
-
-- [工具函数参考](./API-Tools.md)
-- [Agent 使用指南](./API-Agents.md)
-- [配置参考](./API-Config.md)
-
----
-
-**更新时间**: 2025-11-03  
-**版本**: v0.7
-
+- 新增工具：在 `tools/` 增加模块，并在工具注册处暴露。
+- 新增工作流节点：在 `langgraph_workflow.py` 添加 node + edge。
+- 新增记忆类型：扩展 `item_type` 约定和检索权重。
+- 新增平台：复用 `scheduler` + `publisher`，增加平台适配器。

@@ -242,6 +242,7 @@ cookies.json
 test_outputs/
 test_results/
 .pytest_cache/
+.co/
 
 # 日志文件
 *.log

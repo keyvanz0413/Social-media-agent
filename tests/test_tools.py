@@ -17,7 +17,7 @@ class TestContentAnalyst:
     
     def test_analyze_xiaohongshu(self):
         """测试小红书内容分析"""
-        from tools.content_analyst import agent_a_analyze_xiaohongshu
+        from social_media_agent.tools.content_analyst import agent_a_analyze_xiaohongshu
         
         result = agent_a_analyze_xiaohongshu(
             keyword="测试关键词",
@@ -36,7 +36,7 @@ class TestContentAnalyst:
     
     def test_analyze_with_different_limits(self):
         """测试不同数量限制的分析"""
-        from tools.content_analyst import agent_a_analyze_xiaohongshu
+        from social_media_agent.tools.content_analyst import agent_a_analyze_xiaohongshu
         
         for limit in [3, 5, 10]:
             result = agent_a_analyze_xiaohongshu(
@@ -57,12 +57,12 @@ class TestContentCreator:
     @pytest.fixture
     def analysis_result(self):
         """获取分析结果作为输入"""
-        from tools.content_analyst import agent_a_analyze_xiaohongshu
+        from social_media_agent.tools.content_analyst import agent_a_analyze_xiaohongshu
         return agent_a_analyze_xiaohongshu("测试", limit=3, quality_level="fast")
     
     def test_create_content(self, analysis_result):
         """测试内容创作"""
-        from tools.content_creator import agent_c_create_content
+        from social_media_agent.tools.content_creator import agent_c_create_content
         
         result = agent_c_create_content(
             analysis_result=analysis_result,
@@ -85,7 +85,7 @@ class TestContentCreator:
     
     def test_different_styles(self, analysis_result):
         """测试不同风格的创作"""
-        from tools.content_creator import agent_c_create_content
+        from social_media_agent.tools.content_creator import agent_c_create_content
         
         styles = ['casual', 'professional', 'humorous']
         
@@ -108,11 +108,12 @@ class TestPublisher:
     
     def test_publish_to_xiaohongshu(self):
         """测试发布到小红书"""
-        from tools.publisher import publish_to_xiaohongshu
+        from social_media_agent.tools.publisher import publish_to_xiaohongshu
         
         result = publish_to_xiaohongshu(
             title="测试标题",
             content="测试内容",
+            images=["https://example.com/mock.jpg"],
             tags=['测试']
         )
         
@@ -120,7 +121,7 @@ class TestPublisher:
         data = json.loads(result)
         
         # Mock 模式下应该成功
-        assert 'success' in data or 'note_id' in data
+        assert data.get('success') is True
 
 
 @pytest.mark.unit
@@ -129,7 +130,7 @@ class TestImageGenerator:
     
     def test_generate_images(self):
         """测试图片生成"""
-        from tools.image_generator import generate_images_for_content
+        from social_media_agent.tools.image_generator import generate_images_for_content
         
         suggestions = json.dumps([
             {
@@ -166,27 +167,29 @@ class TestReviewTools:
     
     def test_quality_review(self, sample_content):
         """测试质量评审"""
-        from agents.reviewers.quality_reviewer import review_quality
+        from social_media_agent.agents.reviewers.quality_reviewer import review_quality
         
         result = review_quality(sample_content)
         data = json.loads(result)
         
-        assert 'score' in data
-        assert 0 <= data['score'] <= 10
+        assert data.get('success') is True
+        assert 'score' in data['data']
+        assert 0 <= data['data']['score'] <= 10
     
     def test_engagement_review(self, sample_content):
         """测试互动评审"""
-        from agents.reviewers.engagement_reviewer import review_engagement
+        from social_media_agent.agents.reviewers.engagement_reviewer import review_engagement
         
         result = review_engagement(sample_content)
         data = json.loads(result)
         
-        assert 'score' in data
-        assert 0 <= data['score'] <= 10
+        assert data.get('success') is True
+        assert 'score' in data['data']
+        assert 0 <= data['data']['score'] <= 10
     
     def test_compliance_review(self, sample_content):
         """测试合规性评审"""
-        from agents.reviewers.compliance_reviewer import review_compliance
+        from social_media_agent.agents.reviewers.compliance_reviewer import review_compliance
         
         result = review_compliance(sample_content)
         data = json.loads(result)
@@ -195,7 +198,7 @@ class TestReviewTools:
     
     def test_review_content(self, sample_content):
         """测试综合评审"""
-        from tools.review_tools_v1 import review_content
+        from social_media_agent.tools.review_tools_v1 import review_content
         
         result = review_content(sample_content, quality_level="fast")
         data = json.loads(result)
@@ -213,7 +216,7 @@ class TestEndToEndWorkflow:
         topic = "单元测试"
         
         # 步骤 1: 分析
-        from tools.content_analyst import agent_a_analyze_xiaohongshu
+        from social_media_agent.tools.content_analyst import agent_a_analyze_xiaohongshu
         analysis = agent_a_analyze_xiaohongshu(
             keyword=topic,
             limit=3,
@@ -222,7 +225,7 @@ class TestEndToEndWorkflow:
         assert analysis is not None
         
         # 步骤 2: 创作
-        from tools.content_creator import agent_c_create_content
+        from social_media_agent.tools.content_creator import agent_c_create_content
         creation = agent_c_create_content(
             analysis_result=analysis,
             topic=topic,
@@ -232,7 +235,7 @@ class TestEndToEndWorkflow:
         assert creation is not None
         
         # 步骤 3: 评审
-        from tools.review_tools_v1 import review_content
+        from social_media_agent.tools.review_tools_v1 import review_content
         
         creation_data = json.loads(creation)
         if 'success' in creation_data:
@@ -244,10 +247,11 @@ class TestEndToEndWorkflow:
         assert review is not None
         
         # 步骤 4: 发布（Mock）
-        from tools.publisher import publish_to_xiaohongshu
+        from social_media_agent.tools.publisher import publish_to_xiaohongshu
         publish = publish_to_xiaohongshu(
             title=content.get('title', '测试')[:20],
             content=content.get('content', '测试')[:100],
+            images=["https://example.com/mock.jpg"],
             tags=['测试']
         )
         assert publish is not None
@@ -255,4 +259,3 @@ class TestEndToEndWorkflow:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-m", "unit"])
-

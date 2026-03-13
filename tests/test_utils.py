@@ -18,7 +18,7 @@ class TestDraftManager:
     @pytest.fixture
     def draft_manager(self):
         """创建草稿管理器实例"""
-        from utils.draft_manager import DraftManager
+        from social_media_agent.utils.draft_manager import DraftManager
         return DraftManager()
     
     @pytest.fixture
@@ -32,7 +32,7 @@ class TestDraftManager:
     
     def test_save_and_load_draft(self, draft_manager, sample_content):
         """测试保存和加载草稿"""
-        from utils.draft_manager import save_draft_from_content
+        from social_media_agent.utils.draft_manager import save_draft_from_content
         
         # 保存草稿
         draft_id = save_draft_from_content(
@@ -53,7 +53,7 @@ class TestDraftManager:
     
     def test_list_drafts(self, draft_manager, sample_content):
         """测试列出草稿"""
-        from utils.draft_manager import save_draft_from_content
+        from social_media_agent.utils.draft_manager import save_draft_from_content
         
         # 保存几个草稿
         draft_ids = []
@@ -74,7 +74,7 @@ class TestDraftManager:
     
     def test_delete_draft(self, draft_manager, sample_content):
         """测试删除草稿"""
-        from utils.draft_manager import save_draft_from_content
+        from social_media_agent.utils.draft_manager import save_draft_from_content
         
         # 保存草稿
         draft_id = save_draft_from_content(
@@ -96,7 +96,7 @@ class TestResponseUtils:
     
     def test_create_success_response(self):
         """测试创建成功响应"""
-        from utils.response_utils import create_success_response
+        from social_media_agent.utils.response_utils import create_success_response
         
         response = create_success_response(
             data={'key': 'value'},
@@ -110,7 +110,7 @@ class TestResponseUtils:
     
     def test_create_error_response(self):
         """测试创建错误响应"""
-        from utils.response_utils import create_error_response
+        from social_media_agent.utils.response_utils import create_error_response
         
         response = create_error_response(
             error='测试错误',
@@ -124,7 +124,7 @@ class TestResponseUtils:
     
     def test_parse_tool_response(self):
         """测试解析工具响应"""
-        from utils.response_utils import (
+        from social_media_agent.utils.response_utils import (
             create_success_response,
             parse_tool_response
         )
@@ -137,7 +137,7 @@ class TestResponseUtils:
     
     def test_is_success(self):
         """测试判断响应是否成功"""
-        from utils.response_utils import (
+        from social_media_agent.utils.response_utils import (
             create_success_response,
             create_error_response,
             is_success
@@ -155,7 +155,7 @@ class TestMockData:
     
     def test_mock_search_result(self):
         """测试 Mock 搜索结果"""
-        from utils.mock_data import MockDataGenerator
+        from social_media_agent.utils.mock_data import MockDataGenerator
         
         result = MockDataGenerator.mock_xiaohongshu_search("测试", limit=5)
         
@@ -165,7 +165,7 @@ class TestMockData:
     
     def test_mock_content_analysis(self):
         """测试 Mock 内容分析"""
-        from utils.mock_data import MockDataGenerator
+        from social_media_agent.utils.mock_data import MockDataGenerator
         
         analysis = MockDataGenerator.mock_content_analysis("测试主题")
         
@@ -175,7 +175,7 @@ class TestMockData:
     
     def test_mock_content_creation(self):
         """测试 Mock 内容创作"""
-        from utils.mock_data import MockDataGenerator
+        from social_media_agent.utils.mock_data import MockDataGenerator
         
         creation = MockDataGenerator.mock_content_creation("测试", "casual")
         
@@ -186,7 +186,7 @@ class TestMockData:
     
     def test_mock_llm_response(self):
         """测试 Mock LLM 响应"""
-        from utils.mock_data import get_mock_llm_response
+        from social_media_agent.utils.mock_data import get_mock_llm_response
         
         response = get_mock_llm_response("测试提示", "analysis")
         
@@ -199,7 +199,7 @@ class TestLogger:
     
     def test_setup_logging(self):
         """测试日志设置"""
-        from utils.logger_config import setup_logging, get_logger
+        from social_media_agent.utils.logger_config import setup_logging, get_logger
         
         setup_logging(level='INFO', console_enabled=True, file_enabled=False)
         logger = get_logger('test')
@@ -213,7 +213,7 @@ class TestLogger:
     
     def test_get_logger(self):
         """测试获取 Logger"""
-        from utils.logger_config import get_logger
+        from social_media_agent.utils.logger_config import get_logger
         
         logger1 = get_logger('test1')
         logger2 = get_logger('test2')
@@ -231,7 +231,7 @@ class TestErrorHandler:
     
     def test_agent_error(self):
         """测试 AgentError"""
-        from utils.error_handler import AgentError
+        from social_media_agent.utils.error_handler import AgentError
         
         error = AgentError("测试错误", error_code="TEST_001")
         
@@ -240,7 +240,7 @@ class TestErrorHandler:
     
     def test_create_error_response(self):
         """测试创建错误响应"""
-        from utils.error_handler import create_error_response
+        from social_media_agent.utils.error_handler import create_error_response
         
         response = create_error_response("错误信息")
         data = json.loads(response)
@@ -250,7 +250,7 @@ class TestErrorHandler:
     
     def test_safe_json_parse(self):
         """测试安全 JSON 解析"""
-        from utils.error_handler import safe_json_parse
+        from social_media_agent.utils.error_handler import safe_json_parse
         
         # 有效 JSON
         valid = safe_json_parse('{"key": "value"}')
@@ -271,7 +271,7 @@ class TestPerformanceMonitor:
     
     def test_timer(self):
         """测试计时器"""
-        from utils.performance_monitor import Timer
+        from social_media_agent.utils.performance_monitor import Timer
         import time
         
         with Timer("测试操作") as timer:
@@ -281,7 +281,7 @@ class TestPerformanceMonitor:
     
     def test_performance_metrics(self):
         """测试性能指标"""
-        from utils.performance_monitor import PerformanceMetrics
+        from social_media_agent.utils.performance_monitor import PerformanceMetrics
         
         metrics = PerformanceMetrics()
         
